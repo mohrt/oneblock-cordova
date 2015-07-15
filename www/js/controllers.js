@@ -11,8 +11,10 @@ angular.module('starter.controllers', [])
 
 })
 
-.controller('ScanCtrl', function($scope, $state, $ionicHistory) {
-  $scope.ids = angular.fromJson(localStorage.getItem('ids')) || [];
+.controller('ScanCtrl', function($scope, $state, $ionicHistory, $localStorage) {
+  $scope.$storage = $localStorage.$default({
+    ids: []
+  });
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
@@ -21,12 +23,14 @@ angular.module('starter.controllers', [])
   };
 })
 
-.controller('EditCtrl', function($scope, $state, $ionicHistory, $ionicLoading) {
+.controller('EditCtrl', function($scope, $state, $ionicHistory, $localStorage, $ionicLoading) {
   $scope.id = [];
   $scope.page_title = 'Generate ID';
   $scope.button_title = 'Generate ID';
   $scope.isNew = true;
-  $scope.ids = angular.fromJson(localStorage.getItem('ids')) || [];
+  $scope.$storage = $localStorage.$default({
+    ids: []
+  });
 
   $scope.save = function(id) {
     if(id.password !== id.password2) {
@@ -35,7 +39,7 @@ angular.module('starter.controllers', [])
     }
     if(!_.isUndefined(id.index)) {
         // id exists
-        $scope.ids[id.index].title = id.title;
+        $scope.$storage.ids[id.index].title = id.title;
     } else {
         $ionicLoading.show({
           content: 'Loading',
@@ -48,11 +52,10 @@ angular.module('starter.controllers', [])
         var key = Bitcoin.ECKey.makeRandom();
         var bip38 = new Bip38();
         var keyenc = bip38.encrypt(key.toWIF(), id.password, key.pub.getAddress().toString());
-        $scope.ids.push({
+        $scope.$storage.ids.push({
             title: id.title,
             key: keyenc
         });
-        localStorage.setItem('ids', angular.toJson($scope.ids));
         $ionicLoading.hide();
         $ionicHistory.nextViewOptions({
           disableBack: true

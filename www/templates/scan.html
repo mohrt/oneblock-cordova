@@ -8,7 +8,7 @@
           <div class="item item-divider">
               Auth Ids
           </div>
-          <ion-item ng-repeat="id in ids" class="item item-button-right">
+          <ion-item ng-repeat="id in $storage.ids" class="item item-button-right">
               {{id.title}}
               <button class="button button-right button-stable" ng-click="editId($index)">
                   <i class="icon ion-edit"></i>
