@@ -1,0 +1,26 @@
+<ion-view view-title="Scan">
+  <ion-content>
+      <button class="button button-block ion-camera button-positive" ng-click="scanQRCode()">
+          Scan QR Code
+      </button>
+      <ion-list>
+          <div class="list list-inset">
+          <div class="item item-divider">
+              Auth Ids
+          </div>
+          <ion-item ng-repeat="id in ids" class="item item-button-right">
+              {{id.title}}
+              <button class="button button-right button-stable" ng-click="editId($index)">
+                  <i class="icon ion-edit"></i>
+              </button>
+          </ion-item>
+          <ion-item class="item item-button-right">
+              <b>Add New Id</b>
+              <button class="button button-right button-positive" ng-click="go('app.create')">
+                  <i class="icon ion-plus-circled"></i>
+              </button>
+          </ion-item>
+          </div>
+      </ion-list>
+  </ion-content>
+</ion-view>
