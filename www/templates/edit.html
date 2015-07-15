@@ -1,0 +1,24 @@
+<ion-view view-title="{{ page_title }}">
+	<ion-content>
+        <form ng-submit="save(id)">
+            <div class="list list-inset">
+                <label class="item item-input">
+                    <input type="text" placeholder="ID name (ie. Personal)" ng-model="id.title" required>
+                </label>
+                <label class="item item-input" ng-hide="isNew">
+                    <input type="password" placeholder="Old password" ng-model="id.passwordOld">
+                </label>
+                <label class="item item-input">
+                    <input type="password" placeholder="Set password" ng-model="id.password">
+                </label>
+                <label class="item item-input">
+                    <input type="password" placeholder="Confirm password" ng-model="id.password2">
+                </label>
+            </div>
+            <div class="padding">
+                <button type="submit" class="button button-block button-positive">{{ button_title }}</button>
+            </div>
+            <input type="hidden" ng-model="id.index">
+        </form>
+	</ion-content>
+</ion-view>
