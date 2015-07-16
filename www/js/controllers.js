@@ -15,6 +15,10 @@ angular.module('starter.controllers', [])
   $scope.$storage = $localStorage.$default({
     ids: []
   });
+
+  // wipe out ids
+  //$scope.$storage.ids = [];
+
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
@@ -23,7 +27,7 @@ angular.module('starter.controllers', [])
   };
 })
 
-.controller('EditCtrl', function($scope, $state, $ionicHistory, $localStorage, $ionicLoading) {
+.controller('EditCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
   $scope.id = [];
   $scope.page_title = 'Generate ID';
   $scope.button_title = 'Generate ID';
@@ -31,6 +35,7 @@ angular.module('starter.controllers', [])
   $scope.$storage = $localStorage.$default({
     ids: []
   });
+  $scope.sessionStorage = $sessionStorage;
 
   $scope.save = function(id) {
     if(id.password !== id.password2) {
@@ -42,25 +47,28 @@ angular.module('starter.controllers', [])
         $scope.$storage.ids[id.index].title = id.title;
     } else {
         $ionicLoading.show({
-          content: 'Loading',
-          animation: 'fade-in',
-          showBackdrop: true,
-          maxWidth: 200,
-          showDelay: 0
+          template: 'generating ...'
         });
-        // generating a new id
-        var key = Bitcoin.ECKey.makeRandom();
-        var bip38 = new Bip38();
-        var keyenc = bip38.encrypt(key.toWIF(), id.password, key.pub.getAddress().toString());
-        $scope.$storage.ids.push({
-            title: id.title,
-            key: keyenc
-        });
-        $ionicLoading.hide();
-        $ionicHistory.nextViewOptions({
-          disableBack: true
-        });
-        $state.go( 'app.scan' );
+        setTimeout(function() {
+          // generating a new id
+          var key = Bitcoin.ECKey.makeRandom();
+          var reckey = Bitcoin.ECKey.makeRandom();
+          var bip38 = new Bip38();
+          var keyenc = bip38.encrypt(key.toWIF(), id.password, key.pub.getAddress().toString());
+          $scope.$storage.ids.push({
+              title: id.title,
+              key: keyenc,
+              reckey: reckey.pub.getAddress().toString()
+          });
+          alert(keyenc);
+          $scope.sessionStorage.keyenc = keyenc;
+          $scope.sessionStorage.reckeywif = reckey.toWIF();
+          $ionicLoading.hide();
+          $ionicHistory.nextViewOptions({
+            disableBack: true
+          });
+          $state.go( 'app.export' );          
+        }, 500);
     }
   };
 
@@ -69,5 +77,7 @@ angular.module('starter.controllers', [])
 .controller('ImportCtrl', function($scope) {
 })
 
-.controller('ExportCtrl', function($scope) {
+.controller('ExportCtrl', function($scope, $sessionStorage) {
+  $scope.code = $sessionStorage.keyenc;
+  new QRCode(document.getElementById("qrcode"), $sessionStorage.keyenc);
 });
