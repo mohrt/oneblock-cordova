@@ -1,14 +1,40 @@
-<ion-view view-title="Export Encrypted ID">
+<ion-view view-title="Export ID">
   <ion-content>
     <div class="row">
     	<div class="col col-center">
-    		<div id="qrcode"></div>
+    		<div id="qrcode_export" class="center-qr"></div>
+    	</div>
+	</div>
+    <div class="row">
+    	<div class="col col-center text-center">
+    		<b>ID: "{{title}}"</b>
+    	</div>
+	</div>
+    <div class="row">
+    	<div class="col col-center text-center">
+    		<b>decrypt PIN: {{exportPhrase}}</b>
     	</div>
 	</div>
     <div class="row">
     	<div class="col col-center">
-    		<b>{{code}}</b>
+    		<div class="card">
+			  <div class="item item-text-wrap">
+    			<b>Scan to export this ID to another device. Decrypt with given PIN code.
+    				Print out as a recovery backup. Keep a copy in a safe place.</b>
+			  </div>
+			</div>
     	</div>
 	</div>
+    <div class="row">
+    	<div class="col text-center">
+    		<button class="button button-positive" ng-click="print()">
+    			Print
+             </button>
+    	</div>
+    	<div class="col text-center">
+    		<button class="button button-positive" ng-click="go('app.scan')">
+    			Done
+             </button>
+    	</div>
   </ion-content>
 </ion-view>

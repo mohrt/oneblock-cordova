@@ -1,1 +1,9 @@
-/* Empty. Add your own CSS if you like */
+.center-qr {
+    width: 258px;
+  	display: block;
+  	margin-left: auto;
+  	margin-right: auto;
+}
+.red {
+	color: red;
+}

@@ -15,6 +15,9 @@
     <!-- lodash library -->
     <script src="js/lodash.min.js"></script>
 
+    <!-- zepto, tiny jquery compatible -->
+    <script src="js/zepto.min.js"></script>
+
     <!-- ionic/angularjs js -->
     <script src="lib/ionic/js/ionic.bundle.js"></script>
 
@@ -28,10 +31,23 @@
 
     <!-- bitcoinjs js -->
     <script src="js/bitcoinjs.min.js"></script>
-    <script src="js/bip38.js"></script>
+    <script src="lib/bitcore/bitcore.min.js"></script>
+    <script src="lib/bitcore-mnemonic/bitcore-mnemonic.min.js"></script>
+    <script src="js/scrypt.js"></script>
+    <script src="js/aes.js"></script>
+    <!--
+    <script src="js/bip39.js"></script>
+    <script src="js/bigi.js"></script>
+    -->
 
     <!-- qr code js -->
     <script src="js/qrcode.min.js"></script>
+
+    <script type="text/javascript">
+        var Bitcore = require('bitcore');
+        var Mnemonic = require('bitcore-mnemonic');
+        var Buffer = Bitcore.deps.Buffer;
+    </script>    
 
   </head>
 

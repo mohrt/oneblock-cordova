@@ -1,0 +1,28 @@
+<ion-view view-title="ID Export">
+  <ion-content>
+      <div class="row">
+    	<div class="col col-center text-center">
+    		<div class="card">
+			  <div class="item item-text-wrap">
+	    		You can export your ID as a backup, or for transferring to another device.
+	    		This backup is encoded with a pass phrase. The encoding process
+	    		may take several minutes. You can also export your ID at any time from the menu.
+			  </div>
+			</div>
+    	</div>
+	  </div>
+    <div class="row">
+    	<div class="col text-center">
+    		<button class="button button-positive" ng-click="go('app.scan')">
+    			Skip
+             </button>
+    	</div>
+    	<div class="col text-center">
+    		<button class="button button-positive" ng-click="export()">
+    			Export
+             </button>
+    	</div>
+	</div>
+
+  </ion-content>
+</ion-view>

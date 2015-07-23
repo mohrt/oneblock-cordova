@@ -33,6 +33,7 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
   })
 
   .state('app.scan', {
+    cache: false,
     url: '/scan',
     views: {
       'menuContent': {
@@ -43,6 +44,7 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
   })
 
   .state('app.edit', {
+    cache: false,
     url: '/edit',
     views: {
       'menuContent': {
@@ -53,6 +55,7 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
   })
 
   .state('app.import', {
+    cache: false,
     url: '/import',
     views: {
       'menuContent': {
@@ -62,7 +65,30 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
     }
   })
 
+  .state('app.revoke', {
+    cache: false,
+    url: '/revoke',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/revoke.html',
+        controller: 'RevokeCtrl'
+      }
+    }
+  })
+
+  .state('app.preexport', {
+    cache: false,
+    url: '/preexport',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/preexport.html',
+        controller: 'PreExportCtrl'
+      }
+    }
+  })
+
   .state('app.export', {
+    cache: false,
     url: '/export',
     views: {
       'menuContent': {
