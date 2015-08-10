@@ -1,21 +1,53 @@
 <ion-view view-title="Scan">
-  <ion-content>
-      <button class="button button-block ion-camera button-positive" ng-click="scanQRCode()">
+  <ion-content class="padding">
+      <button class="button button-block ion-camera button-positive" ng-click="fakeScanTest()">
           Scan QR Code
       </button>
       <div class="list">
-
-	  <label class="item item-input item-select">
-	    <div class="input-label">
-	      ID
-	    </div>
-	    <select>
-		  <option ng-repeat="id in $storage.ids" >
-		    {{ id.title }}
-		  </option>
-		</select>
-	  </label>
-
+		  <label class="item item-input item-select">
+		    <div class="input-label">
+		      ID
+		    </div>
+		    <select ng-model="$storage.selectedId" ng-options="$storage.ids.indexOf(id) as id.title for id in $storage.ids"></select>
+		  </label>
+	  </div>
+	  <div id="login-buttons" class="hide text-center">
+	  	  <p>Logging into: <b>{{ login_url }}</b></p>
+		  <button id="scan-confirm" class="button button-block ion-checkmark-circled button-balanced" ng-click="continueLogin()">
+			    CONTINUE LOGIN
+		  </button>
+		  <button id="scan-confirm" class="button button-block ion-close-circled button-assertive" ng-click="cancelLogin()">
+			    CANCEL LOGIN
+		  </button>
+	  </div>
+	  <div id="error-dialog" class="hide text-center">
+	  		Error Dialog
 	  </div>
   </ion-content>
 </ion-view>
+
+<script id="password-modal.html" type="text/ng-template">
+  <ion-modal-view>
+    <ion-header-bar>
+      <h1 class="title">Enter Password</h1>
+    </ion-header-bar>
+    <ion-content class="padding">
+      <form ng-submit="save(id)">
+        <div class="list list-inset">
+          	<label class="item item-input">
+        		<input type="password" placeholder="*******" ng-model="modal.password" autofocus>
+        	</label>
+          	<label class="item item-input invalid-password hide">
+        		<p class="red">Invalid password</p>
+        	</label>
+        </div>
+        <div class="padding text-center">
+            <button type="submit" class="button button-block button-positive" ng-click="submitPassword()">Submit</button>
+        </div>
+        <div class="padding text-center">
+            <button type="submit" class="button button-block button-assertive" ng-click="cancelPassword()">Cancel</button>
+        </div>
+      </form>
+    </ion-content>
+  </ion-modal-view>
+</script>

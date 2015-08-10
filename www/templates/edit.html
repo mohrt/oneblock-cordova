@@ -1,9 +1,9 @@
 <ion-view view-title="{{ page_title }}">
-	<ion-content>
+	<ion-content class="padding">
         <form ng-submit="save(id)">
             <div class="list list-inset">
                 <label class="item item-input">
-                    <input type="text" placeholder="ID name (ie. Personal)" ng-model="id.title" required>
+                    <input type="text" placeholder="ID name (ie. Personal)" ng-model="id.title" require autofocus>
                 </label>
                 <label class="item item-input" ng-hide="isNew">
                     <input type="password" placeholder="Old password" ng-model="id.passwordOld">
