@@ -30,7 +30,7 @@ angular.module('starter.controllers', [])
         $('#error-dialog').removeClass('hide');
         return;
       }
-      $scope.challenge = 'oneblock://1block.io/api/login?x=049c00f2e873a1cc9f427a3378b425b1';
+      $scope.challenge = 'oneblock://1block.io/api/login?x=c44f3a4d0a9e0ce36de4b086d51ca1a5';
       var regex = /^oneblock:\/\/([^?&]+)/;
       var matches = regex.exec($scope.challenge);
       $scope.login_url = matches[1];
@@ -41,10 +41,12 @@ angular.module('starter.controllers', [])
       cordova.plugins.barcodeScanner.scan(
           function (result) {
               if(!result.cancelled && result.text != '') {
-                $scope.challenge = result.text;
                 var regex = /^oneblock:\/\/([^?&]+)/;
-                var matches = regex.exec($scope.challenge);
-                $scope.login_url = matches[1];
+                var matches = regex.exec(result.text);
+                $scope.$apply(function() {
+                  $scope.challenge = result.text;
+                  $scope.login_url = matches[1];
+                });
                 $("#login-buttons").removeClass('hide');
               }
           },
@@ -68,8 +70,6 @@ angular.module('starter.controllers', [])
     if(_.isEmpty($scope.modal.password) || CryptoJS.SHA256($scope.modal.password).toString() != id.passHash) {
         $('.invalid-password').removeClass('hide');
     } else {
-      var keyObjectEnc = id.keyObjectEnc;
-      var decrypted = JSON.parse(CryptoJS.AES.decrypt(keyObjectEnc, $scope.modal.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
       //console.log('decrypted', decrypted);
       $('.invalid-password').addClass('hide');
       $scope.closeModal();      
@@ -77,6 +77,8 @@ angular.module('starter.controllers', [])
           template: 'logging in ...'
       });
       setTimeout(function() {
+          var keyObjectEnc = id.keyObjectEnc;
+          var decrypted = JSON.parse(CryptoJS.AES.decrypt(keyObjectEnc, $scope.modal.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
           //var idPrivateKey = Bitcore.PrivateKey.fromWIF(decrypted.idPrvKey);
           // generate site key
           var siteBuffer = new Buffer(decrypted.idPrvKey + $scope.login_url);
@@ -93,17 +95,18 @@ angular.module('starter.controllers', [])
           var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
           var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
           // generate revoke public key
-          var siteRevPubAddress =  siteRevPrvKey.toPublicKey().toAddress().toString();
-          // sign message (pubkey) witt private key
-          var siteRevSignature = Message($scope.login_url).sign(siteRevPrvKey).toString();
+          var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
+          // generate secret, store on server
+          var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey(decrypted.revokePubKey));
+          var siteRevSecretKey = siteRevSecret.kEkM.toString('hex');
           $.ajax({
               type: 'post',
               url: $scope.challenge.replace(/^oneblock/, 'https'),
               data: JSON.stringify({
                 loginSig: loginSig,
                 pubAddress: sitePubAddress,
-                revokePubAddress: siteRevPubAddress,
-                revokeSig: siteRevSignature
+                revokePubKey: siteRevPubKey,
+                revokeSecretKey: siteRevSecretKey
               }),
               success: function (data, text, xhr) {
                   console.log('success', data, text, xhr.status);
@@ -196,7 +199,7 @@ angular.module('starter.controllers', [])
           // assemble object to encrypt
           var keyObject = {
               idPrvKey: prvkey.toWIF(),
-              revokePubKey: revokePrvKey.toAddress().toString()
+              revokePubKey: revokePrvKey.toPublicKey().toString()
           };
           // make JSON string
           var idString = JSON.stringify(keyObject);
