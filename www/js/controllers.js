@@ -1,6 +1,6 @@
 angular.module('starter.controllers', [])
 
-.controller('AppCtrl', function($scope, $state, $localStorage) {
+.controller('AppCtrl', function($scope, $state, $localStorage, $sessionStorage) {
   $scope.$storage = $localStorage.$default({
     ids: [],
     selectedId: 0

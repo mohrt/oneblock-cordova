@@ -6,8 +6,9 @@
 // 'starter.controllers' is found in controllers.js
 angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
 
-.run(function($ionicPlatform, $sessionStorage) {
+.run(function($ionicPlatform, $rootScope, $sessionStorage) {
   $ionicPlatform.ready(function() {
+    $rootScope.$sessionStorage = $sessionStorage;
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
     if (window.cordova && window.cordova.plugins.Keyboard) {
@@ -19,11 +20,18 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
       // org.apache.cordova.statusbar required
       StatusBar.styleDefault();
     }
-    document.addEventListener("pause", function() {
-        alert("The application is pausing to the background");
-        $sessionStorage.$reset();
-    }, false);
+    document.addEventListener("deviceready", onDeviceReady, false);
   });
+  function onDeviceReady() {
+    document.addEventListener("pause", onDevicePause, false);
+    document.addEventListener("resume", onDeviceResume, false);
+  }
+  function onDevicePause() {
+    // clear all the session data on sleep
+    $rootScope.$sessionStorage.$reset();
+  }
+  function onDeviceResume() {
+  }
 })
 
 .config(function($stateProvider, $urlRouterProvider) {
