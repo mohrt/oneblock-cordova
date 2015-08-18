@@ -1,13 +1,11 @@
 angular.module('starter.controllers', [])
 
-.controller('AppCtrl', function($scope, $state, $localStorage, $sessionStorage) {
+.controller('AppCtrl', function($ionicPlatform, $scope, $state, $localStorage, $sessionStorage) {
   $scope.$storage = $localStorage.$default({
     ids: [],
     selectedId: 0
   });
-  if($scope.$storage.ids.length == 0) {
-      $state.go( 'app.edit' );
-  }
+  $scope.$session = $sessionStorage;
   // With the new view caching in Ionic, Controllers are only called
   // when they are recreated or on app start, instead of every page change.
   // To listen for when this page is active (for example, to refresh data),
@@ -17,12 +15,34 @@ angular.module('starter.controllers', [])
 
 })
 
-.controller('ScanCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicModal, $ionicLoading) {
+.controller('ScanCtrl', function($scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicModal, $ionicLoading) {
   $scope.$storage = $localStorage;
-  $scope.sessionStorage = $sessionStorage;
+  $scope.$session = $sessionStorage;
+
+  $ionicHistory.nextViewOptions({
+    disableBack: true
+  });
 
   // wipe out ids
   //$scope.$storage.ids = [];
+
+  $ionicPlatform.ready(function() {
+    if($scope.$storage.ids.length == 0) {
+        $state.go( 'app.edit' );
+        return;
+    } else if (_.isEmpty($scope.$session.id)) {
+        $state.go( 'app.unlock' );
+        return;
+    }
+  });
+
+  $ionicPlatform.on('pause', function() {
+      $scope.$session.$reset();
+  });
+
+  $ionicPlatform.on('resume', function() {
+      $state.go($state.current, {}, {reload: true});
+  });
 
   // change ng-click on web page for testing
   $scope.fakeScanTest = function() {
@@ -30,7 +50,7 @@ angular.module('starter.controllers', [])
         $('#error-dialog').removeClass('hide');
         return;
       }
-      $scope.challenge = 'oneblock://1block.io/api/login?x=c44f3a4d0a9e0ce36de4b086d51ca1a5';
+      $scope.challenge = 'oneblock://1block.io/api/login?x=1a9f994c141e06044791ca2aea8aec94';
       var regex = /^oneblock:\/\/([^?&]+)/;
       var matches = regex.exec($scope.challenge);
       $scope.login_url = matches[1];
@@ -57,31 +77,16 @@ angular.module('starter.controllers', [])
   };
 
   $scope.cancelLogin = function() {
-    $("#login-buttons").addClass('hide');
-  };
+      $("#login-buttons").addClass('hide');
+  }
 
-  $scope.continueLogin = function() {
-      $scope.modal.password = '';
-      $scope.openModal();
-  };
-
-  $scope.submitPassword = function() {
-    var id = $scope.$storage.ids[$scope.$storage.selectedId];
-    if(_.isEmpty($scope.modal.password) || CryptoJS.SHA256($scope.modal.password).toString() != id.passHash) {
-        $('.invalid-password').removeClass('hide');
-    } else {
-      //console.log('decrypted', decrypted);
-      $('.invalid-password').addClass('hide');
-      $scope.closeModal();      
+  $scope.submitLogin = function() {
       $ionicLoading.show({
           template: 'logging in ...'
       });
       setTimeout(function() {
-          var keyObjectEnc = id.keyObjectEnc;
-          var decrypted = JSON.parse(CryptoJS.AES.decrypt(keyObjectEnc, $scope.modal.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
-          //var idPrivateKey = Bitcore.PrivateKey.fromWIF(decrypted.idPrvKey);
           // generate site key
-          var siteBuffer = new Buffer(decrypted.idPrvKey + $scope.login_url);
+          var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_url);
           var siteHash = Bitcore.crypto.Hash.sha256(siteBuffer);
           var siteBigNum = Bitcore.crypto.BN.fromBuffer(siteHash);
           var sitePrvKey = new Bitcore.PrivateKey(siteBigNum);
@@ -90,15 +95,16 @@ angular.module('starter.controllers', [])
           // generate public key
           var sitePubAddress =  sitePrvKey.toPublicKey().toAddress().toString();
           // generate site revoke key
-          var siteRevBuffer = new Buffer(decrypted.revokePubKey + $scope.login_url);
+          var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_url);
           var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
           var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
           var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
           // generate revoke public key
           var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
           // generate secret, store on server
-          var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey(decrypted.revokePubKey));
-          var siteRevSecretKey = siteRevSecret.kEkM.toString('hex');
+          var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
+          // use sha256 of kEkM for comparison
+          var siteRevSecretKey = CryptoJS.SHA256(siteRevSecret.kEkM.toString('hex')).toString();
           $.ajax({
               type: 'post',
               url: $scope.challenge.replace(/^oneblock/, 'https'),
@@ -118,65 +124,29 @@ angular.module('starter.controllers', [])
                   $ionicLoading.hide();
               }
           });
-      });
-    }
+    });
   }
 
-  $scope.cancelPassword = function() {
-      $('.invalid-password').addClass('hide');
-      $scope.closeModal();
-  };
-
-
-  $ionicModal.fromTemplateUrl('password-modal.html', {
-    scope: $scope,
-    animation: 'slide-in-up'
-  }).then(function(modal) {
-    $scope.modal = modal;
-  });
-
-  $scope.openModal = function() {
-    $scope.modal.show();
-  };
-  $scope.closeModal = function() {
-    $scope.modal.hide();
-  };
-  //Cleanup the modal when we're done with it!
-  $scope.$on('$destroy', function() {
-    $scope.modal.remove();
-  });
-  // Execute action on hide modal
-  $scope.$on('modal.hidden', function() {
-    // Execute action
-  });
-  // Execute action on remove modal
-  $scope.$on('modal.removed', function() {
-    // Execute action
-  });
-
-  $ionicHistory.nextViewOptions({
-    disableBack: true
-  });
   $scope.go = function ( path ) {
     $state.go( path );
   };
 })
 
 .controller('EditCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
-  $scope.id = [];
   $scope.page_title = 'Generate ID';
   $scope.button_title = 'Generate ID';
   $scope.isNew = true;
   $scope.$storage = $localStorage;
-  $scope.sessionStorage = $sessionStorage;
+  $scope.$session = $sessionStorage;
+  $scope.model = {};
 
-  $scope.save = function(id) {
-    $sessionStorage.id = id;
-    if(id.password !== id.password2) {
+  $scope.save = function(idForm) {
+    console.log('idForm', idForm);
+    if($scope.model.password !== $scope.model.password2) {
         alert('passwords do not match');
         return;
     }
-    if(!_.isUndefined(id.index)) {
+    if(!_.isUndefined($scope.$session.foobar)) {
         // id exists, updating
         //$scope.$storage.ids[id.index].title = id.title;
     } else {
@@ -189,7 +159,7 @@ angular.module('starter.controllers', [])
 
           // generate new recovery key from mnemonic string
           var revokeMnemonic = new Mnemonic();
-          $scope.sessionStorage.revokePhrase = revokeMnemonic.toString();
+          $scope.$session.revokePhrase = revokeMnemonic.toString();
 
           var revokeBuffer = new Buffer(revokeMnemonic.toString());
           var revokeHash = Bitcore.crypto.Hash.sha256(revokeBuffer);
@@ -201,16 +171,21 @@ angular.module('starter.controllers', [])
               idPrvKey: prvkey.toWIF(),
               revokePubKey: revokePrvKey.toPublicKey().toString()
           };
+          
+          // make active id in session
+          $scope.$session.id = keyObject;
+          $scope.$session.id.title = $scope.model.title;
+
           // make JSON string
           var idString = JSON.stringify(keyObject);
 
           //console.log(idString);
 
           // get scrypt derived key: intentionally memory intensive
-          //var skey = scrypt(id.password, Bitcore.PrivateKey().toWIF(), 512, 256, 1, 64).toString('hex');
+          //var skey = scrypt(id.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
 
           // encrypt with AES, get result as string
-          var keyenc = CryptoJS.AES.encrypt(idString, id.password, { format: JsonFormatter });
+          var keyenc = CryptoJS.AES.encrypt(idString, $scope.model.password, { format: JsonFormatter });
           //console.log(CryptoJS.AES.decrypt(keyenc, id.password).toString(CryptoJS.enc.Utf8))
 
           //var decrypted = CryptoJS.AES.decrypt(keyenc, id.password).toString(CryptoJS.enc.Utf8);
@@ -218,12 +193,11 @@ angular.module('starter.controllers', [])
 
           // object to save to storage
           var idObject = {
-              title: $scope.sessionStorage.id.title,
-              passHash: CryptoJS.SHA256(id.password).toString(),
+              title: $scope.model.title,
+              passHash: CryptoJS.SHA256($scope.model.password).toString(),
               keyObjectEnc: keyenc + ''
           }
-          // save to session for exporting
-          $scope.sessionStorage.idObjectString = JSON.stringify(idObject);
+
           // save encrypted id
           $scope.$storage.ids.push(idObject);
           $ionicLoading.hide();
@@ -248,6 +222,31 @@ angular.module('starter.controllers', [])
     $state.go( path, {}, {reload: true});
   };
 })
+
+.controller('UnlockCtrl', function($scope, $state, $ionicHistory, $ionicLoading, $localStorage, $sessionStorage) {
+  $scope.$storage = $localStorage;
+  $scope.$session = $sessionStorage;
+  $ionicHistory.nextViewOptions({
+    disableBack: true
+  });
+  $scope.model = {};
+
+  $scope.unlockId = function(unlockForm) {
+    var id = $scope.$storage.ids[$scope.$storage.selectedId];
+    if(_.isEmpty($scope.model.password) || CryptoJS.SHA256($scope.model.password).toString() != id.passHash) {
+        unlockForm.password.$setValidity("badPass", false);
+    } else {
+        $scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
+        $scope.$session.id.title = id.title;
+        $state.go( 'app.scan' );
+    }
+  };
+
+  $scope.go = function ( path ) {
+    $state.go( path, {}, {reload: true});
+  };
+})
+
 
 .controller('RevokeCtrl', function($scope, $state, $ionicHistory, $sessionStorage) {
   $ionicHistory.nextViewOptions({
@@ -287,7 +286,7 @@ angular.module('starter.controllers', [])
       // generate new recovery key from mnemonic string
       $scope.sessionStorage.exportPhrase = Bitcore.PrivateKey().toWIF().substr(6,6).toUpperCase();
 
-      var skey = scrypt($scope.sessionStorage.exportPhrase, Bitcore.PrivateKey().toWIF(), 512, 256, 1, 64).toString('hex');
+      var skey = scrypt($scope.sessionStorage.exportPhrase, 'SaltyBlock', 256, 128, 1, 32).toString('hex');
 
       // encrypt with AES, get base64 string
       var keyenc = CryptoJS.AES.encrypt($scope.sessionStorage.idObjectString, skey).toString();

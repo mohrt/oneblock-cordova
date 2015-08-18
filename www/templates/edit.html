@@ -1,22 +1,22 @@
 <ion-view view-title="{{ page_title }}">
 	<ion-content class="padding">
-        <form ng-submit="save(id)">
+        <form name="idForm" novalidate>
             <div class="list list-inset">
                 <label class="item item-input">
-                    <input type="text" placeholder="ID name (ie. Personal)" ng-model="id.title" require autofocus>
+                    <input type="text" placeholder="ID name (ie. Personal)" ng-model="model.title" require autofocus>
                 </label>
                 <label class="item item-input" ng-hide="isNew">
-                    <input type="password" placeholder="Old password" ng-model="id.passwordOld">
+                    <input type="password" placeholder="Old password" ng-model="model.passwordOld">
                 </label>
                 <label class="item item-input">
-                    <input type="password" placeholder="Set password" ng-model="id.password">
+                    <input type="password" placeholder="Set password" ng-model="model.password">
                 </label>
                 <label class="item item-input">
-                    <input type="password" placeholder="Confirm password" ng-model="id.password2">
+                    <input type="password" placeholder="Confirm password" ng-model="model.password2">
                 </label>
             </div>
             <div class="padding text-center">
-                <button type="submit" class="button button-block button-positive">{{ button_title }}</button>
+                <button type="submit" class="button button-block button-positive" ng-click="save(idForm)">{{ button_title }}</button>
             </div>
             <input type="hidden" ng-model="id.index">
         </form>

@@ -4,11 +4,12 @@
 // 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
 // 'starter.controllers' is found in controllers.js
-angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
+angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessages'])
 
-.run(function($ionicPlatform, $rootScope, $sessionStorage) {
+.run(function($ionicPlatform, $ionicHistory, $rootScope, $localStorage, $sessionStorage, $state) {
   $ionicPlatform.ready(function() {
-    $rootScope.$sessionStorage = $sessionStorage;
+    $rootScope.$storage = $localStorage;
+    $rootScope.$session = $sessionStorage;
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
     if (window.cordova && window.cordova.plugins.Keyboard) {
@@ -27,8 +28,6 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
     document.addEventListener("resume", onDeviceResume, false);
   }
   function onDevicePause() {
-    // clear all the session data on sleep
-    $rootScope.$sessionStorage.$reset();
   }
   function onDeviceResume() {
   }
@@ -106,6 +105,17 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage'])
       'menuContent': {
         templateUrl: 'templates/export.html',
         controller: 'ExportCtrl'
+      }
+    }
+  })
+
+  .state('app.unlock', {
+    cache: false,
+    url: '/unlock',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/unlock.html',
+        controller: 'UnlockCtrl'
       }
     }
   })
