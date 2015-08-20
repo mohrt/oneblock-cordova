@@ -54,10 +54,14 @@ angular.module('starter.controllers', [])
         $('#error-dialog').removeClass('hide');
         return;
       }
-      $scope.challenge = 'oneblock://172.26.51.92/mpg/api/login?x=NtMm58qmB7QUHVUH5B4G8KAH6BcXTPXv';
+      $scope.challenge = 'oneblock://1block.io/api/login?x=ed484750fbc2fdaa5523bda074ce4d7b';
       var regex = /^oneblock:\/\/([^?]+)/;
       var matches = regex.exec($scope.challenge);
       $scope.login_url = matches[1];
+      regex = /^oneblock:\/\/([^\/]+)/;
+      matches = regex.exec($scope.challenge);
+      $scope.login_host = matches[1];
+      console.log('login_host', $scope.login_host);
       $scope.schema = 'https';
       $("#login-buttons").removeClass('hide');
   };
@@ -68,9 +72,12 @@ angular.module('starter.controllers', [])
               if(!result.cancelled && result.text != '') {
                 var regex = /^oneblock:\/\/([^?]+)/;
                 var matches = regex.exec(result.text);
+                var regex2 = /^oneblock:\/\/([^\/]+)/;
+                var matches2 = regex2.exec(result.text);
                 $scope.$apply(function() {
                   $scope.challenge = result.text.replace('&u=1','');
                   $scope.login_url = matches[1];
+                  $scope.login_host = matches2[1];
                   $scope.schema = result.text.indexOf('&u=1') == -1 ? 'https' : 'http';
                 });
                 $("#login-buttons").removeClass('hide');
@@ -95,7 +102,7 @@ angular.module('starter.controllers', [])
       });
       _.defer(function() {
           // generate site key
-          var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_url);
+          var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_host);
           var siteHash = Bitcore.crypto.Hash.sha256(siteBuffer);
           var siteBigNum = Bitcore.crypto.BN.fromBuffer(siteHash);
           var sitePrvKey = new Bitcore.PrivateKey(siteBigNum);
@@ -104,7 +111,7 @@ angular.module('starter.controllers', [])
           // generate public key
           var sitePubAddress =  sitePrvKey.toPublicKey().toAddress().toString();
           // generate site revoke key
-          var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_url);
+          var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
           var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
           var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
           var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
@@ -122,7 +129,6 @@ angular.module('starter.controllers', [])
                 revokeSecretKey: siteRevSecretKey,
                 message: $scope.challenge
               });
-          console.log('data', data);
           $.ajax({
               type: 'POST',
               url: $scope.challenge.replace(/^oneblock/, $scope.schema),
@@ -130,13 +136,13 @@ angular.module('starter.controllers', [])
               dataType: "json",
               data: data,
               success: function (data, text, xhr) {
-                  console.log('success', data, text, xhr.status);
+                  //console.log('success', data, text, xhr.status);
                   $ionicLoading.hide();
                   $("#login-buttons").addClass('hide');
                   $("#success-dialog").removeClass('hide');
               },
               error: function (request, status, error) {
-                  console.log('error', request.responseText, status, error);
+                  //console.log('error', request.responseText, status, error);
                   $ionicLoading.hide();
                   $("#error-text").html(request.responseText);
                   $("#error-dialog").removeClass('hide');
