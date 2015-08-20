@@ -7,3 +7,13 @@
 .red {
 	color: red;
 }
+#error-dialog {
+	border: #ff9999 solid 1px;
+	background: #ffeeee;
+	color: red;
+}
+#success-dialog {
+	border: #99dd99 solid 1px;
+	background: #eeffee;
+	color: green;
+}

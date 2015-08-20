@@ -15,12 +15,13 @@ angular.module('starter.controllers', [])
 
 })
 
-.controller('ScanCtrl', function($scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicModal, $ionicLoading) {
+.controller('ScanCtrl', function($window, $scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
   $scope.$storage = $localStorage;
   $scope.$session = $sessionStorage;
 
   $ionicHistory.nextViewOptions({
-    disableBack: true
+    disableBack: true,
+    disableAnimate: true
   });
 
   // wipe out ids
@@ -36,55 +37,63 @@ angular.module('starter.controllers', [])
     }
   });
 
-  $ionicPlatform.on('pause', function() {
-      $scope.$session.$reset();
-  });
+  $scope.scan = function() {
+      $("#login-buttons").addClass('hide');
+      $("#success-dialog").addClass('hide');
+      $("#error-dialog").addClass('hide');
+      if(_.isUndefined($window.cordova)) {
+        $scope.fakeScan();
+      } else {
+        $scope.scanQRCode();
+      }
+  }
 
-  $ionicPlatform.on('resume', function() {
-      $state.go($state.current, {}, {reload: true});
-  });
-
-  // change ng-click on web page for testing
-  $scope.fakeScanTest = function() {
+  // for testing on web browser
+  $scope.fakeScan = function() {
       if($scope.$storage.ids.length == 0) {
         $('#error-dialog').removeClass('hide');
         return;
       }
-      $scope.challenge = 'oneblock://1block.io/api/login?x=1a9f994c141e06044791ca2aea8aec94';
-      var regex = /^oneblock:\/\/([^?&]+)/;
+      $scope.challenge = 'oneblock://172.26.51.92/mpg/api/login?x=NtMm58qmB7QUHVUH5B4G8KAH6BcXTPXv';
+      var regex = /^oneblock:\/\/([^?]+)/;
       var matches = regex.exec($scope.challenge);
       $scope.login_url = matches[1];
+      $scope.schema = 'https';
       $("#login-buttons").removeClass('hide');
   };
 
   $scope.scanQRCode = function() {
-      cordova.plugins.barcodeScanner.scan(
+      $window.cordova.plugins.barcodeScanner.scan(
           function (result) {
               if(!result.cancelled && result.text != '') {
-                var regex = /^oneblock:\/\/([^?&]+)/;
+                var regex = /^oneblock:\/\/([^?]+)/;
                 var matches = regex.exec(result.text);
                 $scope.$apply(function() {
-                  $scope.challenge = result.text;
+                  $scope.challenge = result.text.replace('&u=1','');
                   $scope.login_url = matches[1];
+                  $scope.schema = result.text.indexOf('&u=1') == -1 ? 'https' : 'http';
                 });
                 $("#login-buttons").removeClass('hide');
               }
           },
           function (error) {
-              alert("Scanning failed: " + error);
+              $("#error-text").html(error);
+              $("#error-dialog").removeClass('hide');
           }
       );
   };
 
   $scope.cancelLogin = function() {
       $("#login-buttons").addClass('hide');
+      $("#success-dialog").addClass('hide');
+      $("#error-dialog").addClass('hide');
   }
 
   $scope.submitLogin = function() {
       $ionicLoading.show({
           template: 'logging in ...'
       });
-      setTimeout(function() {
+      _.defer(function() {
           // generate site key
           var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_url);
           var siteHash = Bitcore.crypto.Hash.sha256(siteBuffer);
@@ -105,23 +114,32 @@ angular.module('starter.controllers', [])
           var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
           // use sha256 of kEkM for comparison
           var siteRevSecretKey = CryptoJS.SHA256(siteRevSecret.kEkM.toString('hex')).toString();
-          $.ajax({
-              type: 'post',
-              url: $scope.challenge.replace(/^oneblock/, 'https'),
-              data: JSON.stringify({
+          var data = JSON.stringify({
                 loginSig: loginSig,
                 pubAddress: sitePubAddress,
+                pubKey: sitePrvKey.toPublicKey().toString(),
                 revokePubKey: siteRevPubKey,
-                revokeSecretKey: siteRevSecretKey
-              }),
+                revokeSecretKey: siteRevSecretKey,
+                message: $scope.challenge
+              });
+          console.log('data', data);
+          $.ajax({
+              type: 'POST',
+              url: $scope.challenge.replace(/^oneblock/, $scope.schema),
+              contentType: "application/json",
+              dataType: "json",
+              data: data,
               success: function (data, text, xhr) {
                   console.log('success', data, text, xhr.status);
                   $ionicLoading.hide();
                   $("#login-buttons").addClass('hide');
+                  $("#success-dialog").removeClass('hide');
               },
               error: function (request, status, error) {
                   console.log('error', request.responseText, status, error);
                   $ionicLoading.hide();
+                  $("#error-text").html(request.responseText);
+                  $("#error-dialog").removeClass('hide');
               }
           });
     });
@@ -141,7 +159,6 @@ angular.module('starter.controllers', [])
   $scope.model = {};
 
   $scope.save = function(idForm) {
-    console.log('idForm', idForm);
     if($scope.model.password !== $scope.model.password2) {
         alert('passwords do not match');
         return;
@@ -153,7 +170,7 @@ angular.module('starter.controllers', [])
         $ionicLoading.show({
           template: 'generating ...'
         });
-        setTimeout(function() {
+        _.defer(function() {
           // generate a new id key
           var prvkey = new Bitcore.PrivateKey();
 
@@ -205,7 +222,7 @@ angular.module('starter.controllers', [])
             disableBack: true
           });
           $state.go( 'app.revoke', {}, {reload: true});          
-        }, 500);
+        });
     }
   };
 

@@ -6,7 +6,7 @@
 // 'starter.controllers' is found in controllers.js
 angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessages'])
 
-.run(function($ionicPlatform, $ionicHistory, $rootScope, $localStorage, $sessionStorage, $state) {
+.run(function($ionicPlatform, $ionicHistory, $rootScope, $localStorage, $sessionStorage, $state, $window) {
   $ionicPlatform.ready(function() {
     $rootScope.$storage = $localStorage;
     $rootScope.$session = $sessionStorage;
@@ -28,8 +28,10 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
     document.addEventListener("resume", onDeviceResume, false);
   }
   function onDevicePause() {
+    //$sessionStorage.$reset();
   }
   function onDeviceResume() {
+    //$state.go('app.scan', {}, {reload: true});
   }
 })
 

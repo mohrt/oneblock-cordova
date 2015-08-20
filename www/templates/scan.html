@@ -1,20 +1,41 @@
-<ion-view view-title="Scan">
+<ion-view view-title="1Block: Login">
   <ion-content class="padding">
-    <div class="card text-center">ID: {{ $session.id.title }}</div>
-    <button class="button button-block ion-camera button-positive" ng-click="scanQRCode()">
-        Scan QR Code
-    </button>
+    <div class="row">
+        <div class="col">
+          <div class="card text-center">ID: {{ $session.id.title }}</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <button class="button button-block ion-camera button-positive" ng-click="scan()">
+                Scan QR Code
+            </button>
+        </div>
+    </div>
 	  <div id="login-buttons" class="hide text-center">
-	  	  <p>Logging into: <b>{{ login_url }}</b></p>
-		  <button id="scan-confirm" class="button button-block ion-checkmark-circled button-balanced" ng-click="submitLogin()">
-			    CONTINUE LOGIN
-		  </button>
-		  <button id="scan-confirm" class="button button-block ion-close-circled button-assertive" ng-click="cancelLogin()">
-			    CANCEL LOGIN
-		  </button>
+      <div class="row">
+          <div class="col">
+              <p>Logging into: <b>{{ login_url }}</b></p>
+          </div>
+      </div>
+      <div class="row">
+          <div class="col">
+            <button id="scan-confirm" class="button button-block ion-close-circled button-assertive" ng-click="cancelLogin()">
+                CANCEL
+            </button>
+          </div>
+          <div class="col">
+            <button id="scan-confirm" class="button button-block ion-checkmark-circled button-balanced" ng-click="submitLogin()">
+                CONTINUE
+            </button>
+          </div>          
+      </div>
 	  </div>
+    <div id="success-dialog" class="hide text-center">
+        <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+    </div>
 	  <div id="error-dialog" class="hide text-center">
-	  		Error Dialog
+	  		<i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
 	  </div>
   </ion-content>
 </ion-view>

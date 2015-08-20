@@ -1,4 +1,4 @@
-<ion-view view-title="Export ID">
+<ion-view view-title="1Block: Export ID">
   <ion-content class="padding">
     <div class="row">
     	<div class="col col-center">
@@ -7,12 +7,12 @@
 	</div>
     <div class="row">
     	<div class="col col-center text-center">
-    		<b>ID: "{{title}}"</b>
+    		<b>ID: "{{id.title}}"</b>
     	</div>
 	</div>
     <div class="row">
     	<div class="col col-center text-center">
-    		<b>decrypt PIN: {{exportPhrase}}</b>
+    		<b>decrypt PIN: {{id.exportPhrase}}</b>
     	</div>
 	</div>
     <div class="row">
@@ -27,9 +27,6 @@
 	</div>
     <div class="row">
     	<div class="col text-center">
-    		<button class="button button-positive" ng-click="print()">
-    			Print
-             </button>
     	</div>
     	<div class="col text-center">
     		<button class="button button-positive" ng-click="go('app.scan')">
