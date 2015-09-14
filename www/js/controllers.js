@@ -54,7 +54,9 @@ angular.module('starter.controllers', [])
         $('#error-dialog').removeClass('hide');
         return;
       }
-      $scope.challenge = 'oneblock://1block.io/api/login?x=ed484750fbc2fdaa5523bda074ce4d7b';
+      var result = [];
+      result.text = 'oneblock://172.26.51.92/mpg/api/login?x=3EvSK4F9SE9mljvDXH5B8uUQVff8paoI';
+      $scope.challenge = result.text.replace('&u=1','');
       var regex = /^oneblock:\/\/([^?]+)/;
       var matches = regex.exec($scope.challenge);
       $scope.login_url = matches[1];
@@ -62,7 +64,7 @@ angular.module('starter.controllers', [])
       matches = regex.exec($scope.challenge);
       $scope.login_host = matches[1];
       console.log('login_host', $scope.login_host);
-      $scope.schema = 'https';
+      $scope.schema = result.text.indexOf('&u=1') == -1 ? 'https' : 'http';
       $("#login-buttons").removeClass('hide');
   };
 
@@ -70,8 +72,10 @@ angular.module('starter.controllers', [])
       $window.cordova.plugins.barcodeScanner.scan(
           function (result) {
               if(!result.cancelled && result.text != '') {
+                // get host with path, no params
                 var regex = /^oneblock:\/\/([^?]+)/;
                 var matches = regex.exec(result.text);
+                // get hostname only
                 var regex2 = /^oneblock:\/\/([^\/]+)/;
                 var matches2 = regex2.exec(result.text);
                 $scope.$apply(function() {
