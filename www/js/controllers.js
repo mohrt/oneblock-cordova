@@ -55,7 +55,7 @@ angular.module('starter.controllers', [])
         return;
       }
       var result = [];
-      result.text = 'oneblock://172.26.51.92/mpg/api/login?x=3EvSK4F9SE9mljvDXH5B8uUQVff8paoI';
+      result.text = 'oneblock://1block.io/api/login?x=671bc40b55d8dfcdff42b21d03fc0282&u=1';
       $scope.challenge = result.text.replace('&u=1','');
       var regex = /^oneblock:\/\/([^?]+)/;
       var matches = regex.exec($scope.challenge);
@@ -209,13 +209,14 @@ angular.module('starter.controllers', [])
           //console.log(idString);
 
           // get scrypt derived key: intentionally memory intensive
-          //var skey = scrypt(id.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
+          //var skey = scrypt($scope.model.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
+          //var keyenc = CryptoJS.AES.encrypt(idString, skey, { format: JsonFormatter });
 
-          // encrypt with AES, get result as string
+          // no scrypt
           var keyenc = CryptoJS.AES.encrypt(idString, $scope.model.password, { format: JsonFormatter });
-          //console.log(CryptoJS.AES.decrypt(keyenc, id.password).toString(CryptoJS.enc.Utf8))
+          //console.log(CryptoJS.AES.decrypt(keyenc, $scope.model.password).toString(CryptoJS.enc.Utf8))
 
-          //var decrypted = CryptoJS.AES.decrypt(keyenc, id.password).toString(CryptoJS.enc.Utf8);
+          //var decrypted = CryptoJS.AES.decrypt(keyenc, $scope.model.password).toString(CryptoJS.enc.Utf8);
           //console.log('decrypted', JSON.parse(decrypted.toString(CryptoJS.enc.Utf8)));
 
           // object to save to storage
@@ -238,12 +239,42 @@ angular.module('starter.controllers', [])
 
 })
 
-.controller('ImportCtrl', function($scope, $state, $ionicHistory, $sessionStorage) {
+.controller('ImportCtrl', function($window, $scope, $state, $ionicHistory, $sessionStorage) {
   $scope.sessionStorage = $sessionStorage;
   $scope.exportPhrase = $scope.sessionStorage.exportPhrase;
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
+
+  $scope.scan = function() {
+      $("#success-dialog").addClass('hide');
+      $("#error-dialog").addClass('hide');
+
+      $window.cordova.plugins.barcodeScanner.scan(
+          function (result) {
+              if(!result.cancelled && result.text != '') {
+                alert(result.text);
+                try {
+                  var id = JSON.parse(result.text);
+                  if(id && id.idPrvKey && id.title) {
+                     $scope.$storage.ids.push(id);
+                     $("#success-text").html("Imported ID: " + id.title);
+                     $("#success-dialog").removeClass('hide');
+                  }
+                } catch(e) {
+                    $("#error-text").html(error);
+                    $("#error-dialog").removeClass('hide');
+                }
+              }
+          },
+          function (error) {
+              $("#error-text").html(error);
+              $("#error-dialog").removeClass('hide');
+          }
+      );
+  };
+
+
   $scope.go = function ( path ) {
     $sessionStorage.id = null;
     $state.go( path, {}, {reload: true});
@@ -263,8 +294,14 @@ angular.module('starter.controllers', [])
     if(_.isEmpty($scope.model.password) || CryptoJS.SHA256($scope.model.password).toString() != id.passHash) {
         unlockForm.password.$setValidity("badPass", false);
     } else {
+        // scrypt unlock
+        //var skey = scrypt($scope.model.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
+        //$scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, skey, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
+
+        // no scrypt
         $scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
-        $scope.$session.id.title = id.title;
+        
+        //$scope.$session.id.title = id.title;
         $state.go( 'app.scan' );
     }
   };
@@ -286,9 +323,9 @@ angular.module('starter.controllers', [])
   $scope.title = $sessionStorage.id.title;
   $scope.sessionStorage = $sessionStorage;
   $scope.$on('$ionicView.afterEnter', function(){
-    _.delay(function() {
-      new QRCode($('ion-nav-view').children('ion-view[nav-view="active"]').find('#qrcode_revoke')[0], $sessionStorage.revokePhrase );
-    }, 1000);
+    _.defer(function() {
+      new QRCode($('#qrcode_revoke')[0], $sessionStorage.revokePhrase );
+    });
   });
   $scope.print = function() {
     //var page = document.body.innerHTML;
@@ -338,19 +375,19 @@ angular.module('starter.controllers', [])
 
 })
 
-.controller('ExportCtrl', function($scope, $state, $ionicHistory, $sessionStorage) {
-  $scope.$storage = $sessionStorage;
-  $scope.exportPhrase = $scope.$storage.exportPhrase;
+.controller('ExportCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage) {
+  $scope.$storage = $localStorage;
+  $scope.$session = $sessionStorage;
+  console.log('id', $scope.$storage.ids[$scope.$storage.selectedId]);
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
   $scope.go = function ( path ) {
-    $sessionStorage.id = null;
     $state.go( path, {}, {reload: true});
   };
-  _.delay(function() {
-    new QRCode($('ion-nav-view').children('ion-view[nav-view="active"]').find('#qrcode_export')[0], $scope.sessionStorage.idObjectString);    
-  }, 1000);
+  _.defer(function() {
+    new QRCode($('#qrcode_export')[0], JSON.stringify($scope.$storage.ids[$scope.$storage.selectedId]));    
+  });
   $scope.print = function() {
   }
 })

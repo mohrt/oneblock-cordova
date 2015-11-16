@@ -1,5 +1,18 @@
 <ion-view view-title="1Block: Import ID">
   <ion-content class="padding">
-    <h1>Import</h1>
+    <div class="row">
+        <div class="col">
+            <button class="button button-block ion-camera button-positive" ng-click="scan()">
+                Scan QR Code to Import
+            </button>
+        </div>
+        <div id="#test"></div>
+    </div>
+    <div id="success-dialog" class="hide text-center">
+        <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+    </div>
+	  <div id="error-dialog" class="hide text-center">
+	  		<i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+	  </div>
   </ion-content>
 </ion-view>
