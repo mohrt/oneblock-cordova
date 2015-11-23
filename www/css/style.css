@@ -1,3 +1,6 @@
+input[type="text"] {
+	height: unset;
+}
 .center-qr {
     width: 258px;
   	display: block;
@@ -7,12 +10,12 @@
 .red {
 	color: red;
 }
-#error-dialog {
+#error-dialog, #error-dialog-phrase {
 	border: #ff9999 solid 1px;
 	background: #ffeeee;
 	color: red;
 }
-#success-dialog {
+#success-dialog, #success-dialog-phrase {
 	border: #99dd99 solid 1px;
 	background: #eeffee;
 	color: green;

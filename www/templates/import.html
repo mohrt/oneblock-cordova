@@ -1,18 +1,134 @@
 <ion-view view-title="1Block: Import ID">
-  <ion-content class="padding">
-    <div class="row">
-        <div class="col">
-            <button class="button button-block ion-camera button-positive" ng-click="scan()">
-                Scan QR Code to Import
-            </button>
-        </div>
-        <div id="#test"></div>
-    </div>
-    <div id="success-dialog" class="hide text-center">
-        <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
-    </div>
-	  <div id="error-dialog" class="hide text-center">
-	  		<i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
-	  </div>
-  </ion-content>
+<ion-tabs class="tabs-positive">
+
+    <ion-tab title="QR Code Import">
+        <ion-view>
+            <ion-content class="has-header" padding="true">
+                    <button class="button button-block ion-camera button-positive" ng-click="scan()">
+                        Scan QR Code to Import
+                    </button>
+            </div>
+            <div id="success-dialog" class="hide text-center">
+                <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+            </div>
+              <div id="error-dialog" class="hide text-center">
+                    <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+              </div>
+            </ion-content>
+        </ion-view>
+    </ion-tab>
+ 
+     <ion-tab title="Phrase Import">
+        <ion-view>
+            <ion-content class="has-header" padding="true">
+                <div class="row">
+                    <div class="col col-center text-center">
+                        <div class="list">
+                        <div class="row">
+                            <div class="col"><b>Input the 12 word import phrase</b></div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[0]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[1]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[2]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[3]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[4]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[5]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[6]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[7]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[8]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[9]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[10]" autocapitalize="none" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="item item-input">
+                                  <input type="text" ng-model="phrase[11]" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="item item-input-inset">
+                                  <input type="text" placeholder="create a title" ng-model="model.title" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="item item-input-inset">
+                                  <input type="password" placeholder="create an unlock code" ng-model="model.password" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div id="success-dialog-phrase" class="hide text-center">
+                                    <i class="icon ion-checkmark-circled"></i> <span id="success-text-phrase">Success!</span>
+                                </div>
+                                <div id="error-dialog-phrase" class="hide text-center">
+                                    <i class="icon ion-alert-circled"></i> Error: <span id="error-text-phrase">Error!</span>
+                                </div>
+                                <button class="button button-block button-positive" ng-click="importPhrase()">
+                                    Import ID
+                                </button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </ion-content>
+        </ion-view>
+     </ion-tab>
+ 
+</ion-tabs>
 </ion-view>
+

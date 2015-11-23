@@ -1,28 +1,51 @@
-<ion-view view-title="ID Export">
+<ion-view view-title="ID Seed Phrase">
   <ion-content class="padding">
-      <div class="row">
-    	<div class="col col-center text-center">
-    		<div class="card">
-			  <div class="item item-text-wrap">
-	    		You can export your ID as a backup, or for transferring to another device.
-	    		This backup is encoded with a pass phrase. The encoding process
-	    		may take several minutes. You can also export your ID at any time from the menu.
-			  </div>
-			</div>
-    	</div>
-	  </div>
     <div class="row">
-    	<div class="col text-center">
-    		<button class="button button-positive" ng-click="go('app.scan')">
-    			Skip
+      <div class="col col-center text-center">
+        <div class="row">
+            <div class="col"><b><span class="red">WRITE DOWN THIS PHRASE!</span></b></div>
+        </div>        
+        <div class="row">
+            <div class="col">{{sessionStorage.prvKeyPhrase[0]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[1]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[2]}}</div>
+        </div>
+        <div class="row">
+            <div class="col">{{sessionStorage.prvKeyPhrase[3]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[4]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[5]}}</div>
+        </div>
+        <div class="row">
+            <div class="col">{{sessionStorage.prvKeyPhrase[6]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[7]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[8]}}</div>
+        </div>
+        <div class="row">
+            <div class="col">{{sessionStorage.prvKeyPhrase[9]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[10]}}</div>
+            <div class="col">{{sessionStorage.prvKeyPhrase[11]}}</div>
+        </div>
+      </div>
+  </div>
+    <div class="row">
+      <div class="col col-center">
+        <div class="card">
+        <div class="item item-text-wrap">
+          <b>Write these 12 words down, in order, and keep them safe. Treat them like you would your SSN. This is
+          meant to be a permenant ID. You may need these if your device is lost, stolen or broken. <span class="red">Do this now,
+          you cannot recover it later!</span></b>
+        </div>
+      </div>
+      </div>
+  </div>
+    <div class="row">
+      <div class="col text-center">
+      </div>
+      <div class="col text-center">
+        <button class="button button-positive" ng-click="finish()">
+          Next
              </button>
-    	</div>
-    	<div class="col text-center">
-    		<button class="button button-positive" ng-click="export()">
-    			Export
-             </button>
-    	</div>
-	</div>
-
+      </div>
+  </div>
   </ion-content>
 </ion-view>

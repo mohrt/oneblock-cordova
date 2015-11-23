@@ -27,6 +27,8 @@ angular.module('starter.controllers', [])
   // wipe out ids
   //$scope.$storage.ids = [];
 
+  console.log($scope.$session.id);
+
   $ionicPlatform.ready(function() {
     if($scope.$storage.ids.length == 0) {
         $state.go( 'app.edit' );
@@ -115,22 +117,22 @@ angular.module('starter.controllers', [])
           // generate public key
           var sitePubAddress =  sitePrvKey.toPublicKey().toAddress().toString();
           // generate site revoke key
-          var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
-          var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
-          var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
-          var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
+          //var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
+          //var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
+          //var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
+          //var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
           // generate revoke public key
-          var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
+          //var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
           // generate secret, store on server
-          var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
+          //var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
           // use sha256 of kEkM for comparison
-          var siteRevSecretKey = CryptoJS.SHA256(siteRevSecret.kEkM.toString('hex')).toString();
+          //var siteRevSecretKey = CryptoJS.SHA256(siteRevSecret.kEkM.toString('hex')).toString();
           var data = JSON.stringify({
                 loginSig: loginSig,
                 pubAddress: sitePubAddress,
                 pubKey: sitePrvKey.toPublicKey().toString(),
-                revokePubKey: siteRevPubKey,
-                revokeSecretKey: siteRevSecretKey,
+                //revokePubKey: siteRevPubKey,
+                //revokeSecretKey: siteRevSecretKey,
                 message: $scope.challenge
               });
           $.ajax({
@@ -182,21 +184,23 @@ angular.module('starter.controllers', [])
         });
         _.defer(function() {
           // generate a new id key
-          var prvkey = new Bitcore.PrivateKey();
 
-          // generate new recovery key from mnemonic string
-          var revokeMnemonic = new Mnemonic();
-          $scope.$session.revokePhrase = revokeMnemonic.toString();
+          var mnemonic = new Mnemonic();
+          $scope.$session.prvKeyPhrase = mnemonic.toString().split(' ');
 
-          var revokeBuffer = new Buffer(revokeMnemonic.toString());
-          var revokeHash = Bitcore.crypto.Hash.sha256(revokeBuffer);
-          var revokeBigNum = Bitcore.crypto.BN.fromBuffer(revokeHash);
-          var revokePrvKey = new Bitcore.PrivateKey(revokeBigNum);
+          var hdPrvKey = mnemonic.toHDPrivateKey();
+          var derived = hdPrvKey.derive(0);
+          var prvKey = derived.privateKey;
+
+          //var prvKeyBuffer = new Buffer(prvKeyMnemonic.toString());
+          //var prvKeyHash = Bitcore.crypto.Hash.sha256(prvKeyBuffer);
+          //var prvKeyBigNum = Bitcore.crypto.BN.fromBuffer(prvKeyHash);
+          //var prvKey = new Bitcore.PrivateKey(prvKeyBigNum);
 
           // assemble object to encrypt
           var keyObject = {
-              idPrvKey: prvkey.toWIF(),
-              revokePubKey: revokePrvKey.toPublicKey().toString()
+              idPrvKey: prvKey.toWIF(),
+              //revokePubKey: revokePrvKey.toPublicKey().toString()
           };
           
           // make active id in session
@@ -222,7 +226,7 @@ angular.module('starter.controllers', [])
           // object to save to storage
           var idObject = {
               title: $scope.model.title,
-              passHash: CryptoJS.SHA256($scope.model.password).toString(),
+              passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
               keyObjectEnc: keyenc + ''
           }
 
@@ -232,7 +236,8 @@ angular.module('starter.controllers', [])
           $ionicHistory.nextViewOptions({
             disableBack: true
           });
-          $state.go( 'app.revoke', {}, {reload: true});          
+          //$state.go( 'app.revoke', {}, {reload: true});          
+          $state.go( 'app.preexport', {}, {reload: true});          
         });
     }
   };
@@ -241,25 +246,29 @@ angular.module('starter.controllers', [])
 
 .controller('ImportCtrl', function($window, $scope, $state, $ionicHistory, $sessionStorage) {
   $scope.sessionStorage = $sessionStorage;
-  $scope.exportPhrase = $scope.sessionStorage.exportPhrase;
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
-
+  $scope.model = {title: '', password: ''};
+  $scope.phrase = [];
   $scope.scan = function() {
-      $("#success-dialog").addClass('hide');
-      $("#error-dialog").addClass('hide');
-
+    $("#success-dialog").addClass('hide');
+    $("#error-dialog").addClass('hide');
+    $("#success-dialog-phrase").addClass('hide');
+    $("#error-dialog-phrase").addClass('hide');
       $window.cordova.plugins.barcodeScanner.scan(
           function (result) {
               if(!result.cancelled && result.text != '') {
                 alert(result.text);
                 try {
                   var id = JSON.parse(result.text);
-                  if(id && id.idPrvKey && id.title) {
+                  if(id && id.keyObjectEnc && id.title) {
                      $scope.$storage.ids.push(id);
                      $("#success-text").html("Imported ID: " + id.title);
                      $("#success-dialog").removeClass('hide');
+                  } else {
+                    $("#error-text").html('Error importing ID');
+                    $("#error-dialog").removeClass('hide');
                   }
                 } catch(e) {
                     $("#error-text").html(error);
@@ -274,6 +283,63 @@ angular.module('starter.controllers', [])
       );
   };
 
+  $scope.importPhrase = function() {
+    $("#success-dialog").addClass('hide');
+    $("#error-dialog").addClass('hide');
+    $("#success-dialog-phrase").addClass('hide');
+    $("#error-dialog-phrase").addClass('hide');
+    $scope.phrase = _.map($scope.phrase, function(item) { return item.trim().toLowerCase() });
+    var phraseString = $scope.phrase.join(' ');
+    var phraseTitle = $scope.model.title.trim();
+    var phrasePass = $scope.model.password.trim();
+    if(!Mnemonic.isValid(phraseString)) {
+      $("#error-text-phrase").html('Invalid Phrase');
+      $("#error-dialog-phrase").removeClass('hide');
+    } else if (_.isEmpty(phraseTitle)) {
+      $("#error-text-phrase").html('Empty Title');
+      $("#error-dialog-phrase").removeClass('hide');
+    } else if (_.isEmpty(phrasePass)) {
+      $("#error-text-phrase").html('Empty Passcode');
+      $("#error-dialog-phrase").removeClass('hide');
+    } else {
+          var mnemonic = new Mnemonic(phraseString);
+          var hdPrvKey = mnemonic.toHDPrivateKey();
+          var derived = hdPrvKey.derive(0);
+          var prvKey = derived.privateKey;
+          //console.log('prvKey', prvKey.toWIF());
+
+          var keyObject = {
+              idPrvKey: prvKey.toWIF(),
+          };
+          
+          // make active id in session
+          $scope.$session.id = keyObject;
+          $scope.$session.id.title = $scope.model.title;
+
+          // make JSON string
+          var idString = JSON.stringify(keyObject);
+
+          // encrypt the key with 256 bit AES
+          var keyenc = CryptoJS.AES.encrypt(idString, phrasePass, { format: JsonFormatter });
+
+          // object to save to storage
+          var idObject = {
+              title: $scope.model.title,
+              passHash: CryptoJS.SHA256(phrasePass).toString().substr(0,16),
+              keyObjectEnc: keyenc + ''
+          }
+
+          // save encrypted id
+          $scope.$storage.ids.push(idObject);
+
+          // reset form
+          $scope.model = {title: '', password: ''};
+          $scope.phrase = [];
+
+          // go to scan page
+          $state.go( 'app.scan', {}, {reload: true});        
+  }
+  };
 
   $scope.go = function ( path ) {
     $sessionStorage.id = null;
@@ -291,17 +357,10 @@ angular.module('starter.controllers', [])
 
   $scope.unlockId = function(unlockForm) {
     var id = $scope.$storage.ids[$scope.$storage.selectedId];
-    if(_.isEmpty($scope.model.password) || CryptoJS.SHA256($scope.model.password).toString() != id.passHash) {
+    if(_.isEmpty($scope.model.password) || CryptoJS.SHA256($scope.model.password).toString().substr(0,16) != id.passHash) {
         unlockForm.password.$setValidity("badPass", false);
     } else {
-        // scrypt unlock
-        //var skey = scrypt($scope.model.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
-        //$scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, skey, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
-
-        // no scrypt
-        $scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
-        
-        //$scope.$session.id.title = id.title;
+        $scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));        
         $state.go( 'app.scan' );
     }
   };
@@ -327,10 +386,6 @@ angular.module('starter.controllers', [])
       new QRCode($('#qrcode_revoke')[0], $sessionStorage.revokePhrase );
     });
   });
-  $scope.print = function() {
-    //var page = document.body.innerHTML;
-    //$cordovaPrinter.print(page);
-  }
 })
 
 .controller('PreExportCtrl', function($scope, $state, $ionicLoading, $ionicHistory, $sessionStorage) {
@@ -342,35 +397,12 @@ angular.module('starter.controllers', [])
     $state.go( path, {}, {reload: true});
   };
   $scope.title = $sessionStorage.id.title;
-  $scope.export = function() {
-    $ionicLoading.show({
-            template: 'encrypting ...'
+  $scope.finish = function() {
+    $scope.$session.prvKeyPhrase = null;
+    $ionicHistory.nextViewOptions({
+      disableBack: true
     });
-    setTimeout(function() {
-      // generate new recovery key from mnemonic string
-      $scope.sessionStorage.exportPhrase = Bitcore.PrivateKey().toWIF().substr(6,6).toUpperCase();
-
-      var skey = scrypt($scope.sessionStorage.exportPhrase, 'SaltyBlock', 256, 128, 1, 32).toString('hex');
-
-      // encrypt with AES, get base64 string
-      var keyenc = CryptoJS.AES.encrypt($scope.sessionStorage.idObjectString, skey).toString();
-
-      //var decrypted = CryptoJS.AES.decrypt(keyenc, id.password).toString(CryptoJS.enc.Utf8);
-      //console.log('decrypted', JSON.parse(decrypted.toString(CryptoJS.enc.Utf8)));
-
-      // object to save to storage
-      var idObject = {
-          title: $scope.sessionStorage.id.title,
-          keyObjectEnc: keyenc
-      }
-      // save to session for exporting
-      $scope.sessionStorage.idObjectString = JSON.stringify(idObject);
-      $ionicLoading.hide();
-      $ionicHistory.nextViewOptions({
-        disableBack: true
-      });
-      $state.go( 'app.export', {}, {reload: true});        
-    }, 500);
+    $state.go( 'app.scan', {}, {reload: true});        
   }
 
 })
@@ -378,7 +410,6 @@ angular.module('starter.controllers', [])
 .controller('ExportCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage) {
   $scope.$storage = $localStorage;
   $scope.$session = $sessionStorage;
-  console.log('id', $scope.$storage.ids[$scope.$storage.selectedId]);
   $ionicHistory.nextViewOptions({
     disableBack: true
   });

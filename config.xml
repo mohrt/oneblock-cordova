@@ -66,6 +66,11 @@
     <splash src="resources/ios/splash/Default-Portrait~ipad.png" width="768" height="1024"/>
     <splash src="resources/ios/splash/Default@2x~iphone.png" width="640" height="960"/>
     <splash src="resources/ios/splash/Default~iphone.png" width="320" height="480"/>
+    <config-file platform="ios" target="*-Info.plist" parent="NSAppTransportSecurity">
+        <dict>
+            <key>NSAllowsArbitraryLoads</key><true/>
+        </dict>
+    </config-file>
   </platform>
   <icon src="resources/android/icon/drawable-xhdpi-icon.png"/>
 </widget>
