@@ -56,6 +56,17 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
     }
   })
 
+  .state('app.site_confirm', {
+    cache: false,
+    url: '/site_confirm',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/site_confirm.html',
+        controller: 'SiteConfirmCtrl'
+      }
+    }
+  })
+
   .state('app.edit', {
     cache: false,
     url: '/edit',

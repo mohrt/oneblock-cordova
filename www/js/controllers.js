@@ -27,7 +27,9 @@ angular.module('starter.controllers', [])
   // wipe out ids
   //$scope.$storage.ids = [];
 
-  console.log($scope.$session.id);
+  //console.log($scope.$session.id);
+
+  $scope.$session.login_url = '';
 
   $ionicPlatform.ready(function() {
     if($scope.$storage.ids.length == 0) {
@@ -56,37 +58,22 @@ angular.module('starter.controllers', [])
         $('#error-dialog').removeClass('hide');
         return;
       }
-      var result = [];
-      result.text = 'oneblock://1block.io/api/login?x=671bc40b55d8dfcdff42b21d03fc0282&u=1';
-      $scope.challenge = result.text.replace('&u=1','');
+      $scope.$session.login_url = 'oneblock://1block.io/api/login?x=73b130bd13631e589a99144e3a3c41d7&u=1';
       var regex = /^oneblock:\/\/([^?]+)/;
-      var matches = regex.exec($scope.challenge);
-      $scope.login_url = matches[1];
-      regex = /^oneblock:\/\/([^\/]+)/;
-      matches = regex.exec($scope.challenge);
-      $scope.login_host = matches[1];
-      console.log('login_host', $scope.login_host);
-      $scope.schema = result.text.indexOf('&u=1') == -1 ? 'https' : 'http';
-      $("#login-buttons").removeClass('hide');
+      var matches = regex.exec($scope.$session.login_url);
+      $scope.$session.login_host = matches[1];
+      $state.go( 'app.site_confirm', {}, {reload: true});    
   };
 
   $scope.scanQRCode = function() {
       $window.cordova.plugins.barcodeScanner.scan(
           function (result) {
               if(!result.cancelled && result.text != '') {
-                // get host with path, no params
+                $scope.$session.login_url = result.text;
                 var regex = /^oneblock:\/\/([^?]+)/;
                 var matches = regex.exec(result.text);
-                // get hostname only
-                var regex2 = /^oneblock:\/\/([^\/]+)/;
-                var matches2 = regex2.exec(result.text);
-                $scope.$apply(function() {
-                  $scope.challenge = result.text.replace('&u=1','');
-                  $scope.login_url = matches[1];
-                  $scope.login_host = matches2[1];
-                  $scope.schema = result.text.indexOf('&u=1') == -1 ? 'https' : 'http';
-                });
-                $("#login-buttons").removeClass('hide');
+                $scope.$session.login_host = matches[1];
+                $state.go( 'app.site_confirm', {}, {reload: true});    
               }
           },
           function (error) {
@@ -96,13 +83,38 @@ angular.module('starter.controllers', [])
       );
   };
 
+  $scope.go = function ( path ) {
+    $state.go( path );
+  };
+})
+
+.controller('SiteConfirmCtrl', function($window, $scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
+  $scope.$storage = $localStorage;
+  $scope.$session = $sessionStorage;
+
+  $ionicHistory.nextViewOptions({
+    disableBack: true,
+    disableAnimate: true
+  });
+
   $scope.cancelLogin = function() {
       $("#login-buttons").addClass('hide');
       $("#success-dialog").addClass('hide');
       $("#error-dialog").addClass('hide');
+      $state.go( 'app.scan', {}, {reload: true});
   }
 
   $scope.submitLogin = function() {
+
+      // get hostname only
+      var regex = /^oneblock:\/\/([^\/]+)/;
+      var matches = regex.exec($scope.$session.login_url);
+      //$scope.$apply(function() {
+        $scope.challenge = $scope.$session.login_url.replace('&u=1','');
+        $scope.login_url = matches[1];
+        $scope.schema = $scope.$session.login_url.indexOf('&u=1') == -1 ? 'https' : 'http';
+      //});
+      $("#login-buttons").removeClass('hide');
       $ionicLoading.show({
           template: 'logging in ...'
       });
@@ -146,6 +158,9 @@ angular.module('starter.controllers', [])
                   $ionicLoading.hide();
                   $("#login-buttons").addClass('hide');
                   $("#success-dialog").removeClass('hide');
+                  _.delay(function() {
+                      $state.go( 'app.scan', {}, {reload: true});
+                  }, 3000);
               },
               error: function (request, status, error) {
                   //console.log('error', request.responseText, status, error);
@@ -157,9 +172,6 @@ angular.module('starter.controllers', [])
     });
   }
 
-  $scope.go = function ( path ) {
-    $state.go( path );
-  };
 })
 
 .controller('EditCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
@@ -171,20 +183,34 @@ angular.module('starter.controllers', [])
   $scope.model = {};
 
   $scope.save = function(idForm) {
+  $scope.model.title = $scope.model.title.trim();
+    if(_.isEmpty($scope.model.title)) {
+        $("#error-text").html('Title cannot be empty.');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
+    if(_.isEmpty($scope.model.password)) {
+        $("#error-text").html('Password cannot be empty.');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
     if($scope.model.password !== $scope.model.password2) {
-        alert('passwords do not match');
+        $("#error-text").html('Passwords do not match.');
+        $("#error-dialog").removeClass('hide');
         return;
     }
     if(!_.isUndefined($scope.$session.foobar)) {
         // id exists, updating
         //$scope.$storage.ids[id.index].title = id.title;
     } else {
+        $("#error-dialog").addClass('hide');
         $ionicLoading.show({
           template: 'generating ...'
         });
         _.defer(function() {
           // generate a new id key
 
+          try {
           var mnemonic = new Mnemonic();
           $scope.$session.prvKeyPhrase = mnemonic.toString().split(' ');
 
@@ -238,6 +264,10 @@ angular.module('starter.controllers', [])
           });
           //$state.go( 'app.revoke', {}, {reload: true});          
           $state.go( 'app.preexport', {}, {reload: true});          
+        } catch(e) {
+            $("#error-text").html('Unknown error.');
+            $("#error-dialog").removeClass('hide');
+        }
         });
     }
   };
@@ -260,7 +290,6 @@ angular.module('starter.controllers', [])
           function (result) {
               if(!result.cancelled && result.text != '') {
                 alert(result.text);
-                try {
                   var id = JSON.parse(result.text);
                   if(id && id.keyObjectEnc && id.title) {
                      $scope.$storage.ids.push(id);
@@ -270,10 +299,6 @@ angular.module('starter.controllers', [])
                     $("#error-text").html('Error importing ID');
                     $("#error-dialog").removeClass('hide');
                   }
-                } catch(e) {
-                    $("#error-text").html(error);
-                    $("#error-dialog").removeClass('hide');
-                }
               }
           },
           function (error) {
@@ -290,16 +315,19 @@ angular.module('starter.controllers', [])
     $("#error-dialog-phrase").addClass('hide');
     $scope.phrase = _.map($scope.phrase, function(item) { return item.trim().toLowerCase() });
     var phraseString = $scope.phrase.join(' ');
-    var phraseTitle = $scope.model.title.trim();
-    var phrasePass = $scope.model.password.trim();
+    $scope.model.title = $scope.model.title.trim();
+    $scope.model.password = $scope.model.password.trim();
     if(!Mnemonic.isValid(phraseString)) {
-      $("#error-text-phrase").html('Invalid Phrase');
+      $("#error-text-phrase").html('Invalid Phrase.');
       $("#error-dialog-phrase").removeClass('hide');
-    } else if (_.isEmpty(phraseTitle)) {
-      $("#error-text-phrase").html('Empty Title');
+    } else if (_.isEmpty($scope.model.title)) {
+      $("#error-text-phrase").html('Empty Title.');
       $("#error-dialog-phrase").removeClass('hide');
-    } else if (_.isEmpty(phrasePass)) {
-      $("#error-text-phrase").html('Empty Passcode');
+    } else if (_.isEmpty($scope.model.password)) {
+      $("#error-text-phrase").html('Empty Passcode.');
+      $("#error-dialog-phrase").removeClass('hide');
+    } else if ($scope.model.password != $scope.model.password2) {
+      $("#error-text-phrase").html('Passcodes do not match.');
       $("#error-dialog-phrase").removeClass('hide');
     } else {
           var mnemonic = new Mnemonic(phraseString);
@@ -320,12 +348,12 @@ angular.module('starter.controllers', [])
           var idString = JSON.stringify(keyObject);
 
           // encrypt the key with 256 bit AES
-          var keyenc = CryptoJS.AES.encrypt(idString, phrasePass, { format: JsonFormatter });
+          var keyenc = CryptoJS.AES.encrypt(idString, $scope.model.password, { format: JsonFormatter });
 
           // object to save to storage
           var idObject = {
               title: $scope.model.title,
-              passHash: CryptoJS.SHA256(phrasePass).toString().substr(0,16),
+              passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
               keyObjectEnc: keyenc + ''
           }
 

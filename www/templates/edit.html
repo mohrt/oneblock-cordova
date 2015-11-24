@@ -16,6 +16,12 @@
                 </label>
             </div>
             <div class="padding text-center">
+                <div id="success-dialog" class="hide text-center">
+                    <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+                </div>
+                <div id="error-dialog" class="hide text-center">
+                    <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                </div>
                 <button type="submit" class="button button-block button-positive" ng-click="save(idForm)">{{ button_title }}</button>
             </div>
             <input type="hidden" ng-model="id.index">
