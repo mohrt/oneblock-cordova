@@ -67,6 +67,17 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
     }
   })
 
+  .state('app.new', {
+    cache: false,
+    url: '/new',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/new.html',
+        controller: 'NewCtrl'
+      }
+    }
+  })
+
   .state('app.edit', {
     cache: false,
     url: '/edit',
@@ -129,6 +140,17 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
       'menuContent': {
         templateUrl: 'templates/unlock.html',
         controller: 'UnlockCtrl'
+      }
+    }
+  })
+
+  .state('app.logout', {
+    cache: false,
+    url: '/logout',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/logout.html',
+        controller: 'LogoutCtrl'
       }
     }
   })

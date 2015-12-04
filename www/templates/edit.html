@@ -3,26 +3,56 @@
         <form name="idForm" novalidate>
             <div class="list list-inset">
                 <label class="item item-input">
-                    <input type="text" placeholder="ID name (ie. Personal)" ng-model="model.title" require autofocus>
+                    <input type="text" placeholder="id name (required)" ng-model="model.title" require autofocus>
                 </label>
                 <label class="item item-input" ng-hide="isNew">
-                    <input type="password" placeholder="Old password" ng-model="model.passwordOld">
+                    <input type="password" placeholder="current unlock code (required)" ng-model="model.passwordOld">
                 </label>
                 <label class="item item-input">
-                    <input type="password" placeholder="Set password" ng-model="model.password">
+                    <input type="password" placeholder="new unlock code" ng-model="model.password">
                 </label>
                 <label class="item item-input">
-                    <input type="password" placeholder="Confirm password" ng-model="model.password2">
+                    <input type="password" placeholder="new unlock code again" ng-model="model.password2">
                 </label>
+              <div class="row">
+                <div class="col col-center">
+                  <div class="card">
+                  <div class="item item-text-wrap">
+                    <b>Leave new unlock code fields empty to keep the current one.</b>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="padding text-center">
-                <div id="success-dialog" class="hide text-center">
-                    <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+            <div class="row">
+                <div class="col">
+                    <div class="padding text-center">
+                        <div id="success-dialog" class="hide text-center">
+                            <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+                        </div>
+                        <div id="error-dialog" class="hide text-center">
+                            <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                        </div>
+                        <button type="submit" class="button button-block button-positive" ng-click="save(idForm)">Update ID</button>
+                    </div>
                 </div>
-                <div id="error-dialog" class="hide text-center">
-                    <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="padding text-center">
+                        <b>DANGER ZONE!!!</b>
+                    </div>
                 </div>
-                <button type="submit" class="button button-block button-positive" ng-click="save(idForm)">{{ button_title }}</button>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="padding text-center">
+                        <div class="padding text-center">
+                            <button id="button-delete" type="submit" class="button button button-energized" ng-click="confirmDelete(idForm)">Delete ID</button>
+                            <button id="button-cancel-delete" type="submit" class="hide button button button-positive" ng-click="cancelDelete(idForm)">Cancel Delete</button>
+                            <button id="button-confirm-delete" type="submit" class="hide button button button-assertive" ng-click="delete(idForm)">Confirm Delete</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <input type="hidden" ng-model="id.index">
         </form>

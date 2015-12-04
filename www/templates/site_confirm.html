@@ -8,17 +8,21 @@
                     <p>Logging into: <b>{{ $session.login_host }}</b></p>
                 </div>
             </div>
-            <div id="login-buttons" class="row">
+            <div id="login-buttons">
+              <div class="row">
+                <div class="col">
+                  <button id="scan-confirm-login" class="button button-block ion-checkmark-circled button-balanced" ng-click="submitLogin()">
+                      CONTINUE
+                  </button>
+                </div>
+              </div>
+              <div class="row">
                 <div class="col">
                   <button id="scan-confirm-cancel" class="button button-block ion-close-circled button-assertive" ng-click="cancelLogin()">
                       CANCEL
                   </button>
                 </div>
-                <div class="col">
-                  <button id="scan-confirm-login" class="button button-block ion-checkmark-circled button-balanced" ng-click="submitLogin()">
-                      CONTINUE
-                  </button>
-                </div>          
+              </div> 
             </div>
             <div class="row">
                 <div class="col">

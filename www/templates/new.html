@@ -1,0 +1,35 @@
+<ion-view view-title="1Block: {{ page_title }}">
+	<ion-content class="padding">
+        <form name="idForm" novalidate>
+            <div class="list list-inset">
+                <label class="item item-input">
+                    <input type="text" placeholder="create an ID name (ie. Personal)" ng-model="model.title" require autofocus>
+                </label>
+                <label class="item item-input">
+                    <input type="password" placeholder="create an unlock code (required)" ng-model="model.password">
+                </label>
+                <label class="item item-input">
+                    <input type="password" placeholder="unlock code again (required)" ng-model="model.password2">
+                </label>
+              <div class="row">
+                <div class="col col-center">
+                  <div class="card">
+                  <div class="item item-text-wrap">
+                    <b>Your ID is your keychain. The unlock code is for local encryption.</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="padding text-center">
+                <div id="success-dialog" class="hide text-center">
+                    <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+                </div>
+                <div id="error-dialog" class="hide text-center">
+                    <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                </div>
+                <button type="submit" class="button button-block button-positive" ng-click="save(idForm)">{{ button_title }}</button>
+            </div>
+            <input type="hidden" ng-model="id.index">
+        </form>
+	</ion-content>
+</ion-view>

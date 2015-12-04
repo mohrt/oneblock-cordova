@@ -27,16 +27,20 @@ angular.module('starter.controllers', [])
   // wipe out ids
   //$scope.$storage.ids = [];
 
+  //$scope.$session.id = null;
+
   //console.log($scope.$session.id);
+  //console.log($scope.$storage.ids);
 
   $scope.$session.login_url = '';
+  $scope.model = {login_url:''};
 
   $ionicPlatform.ready(function() {
     if($scope.$storage.ids.length == 0) {
-        $state.go( 'app.edit' );
+        $state.go( 'app.new', {}, {reload: true} );
         return;
     } else if (_.isEmpty($scope.$session.id)) {
-        $state.go( 'app.unlock' );
+        $state.go( 'app.unlock',{}, {reload: true} );
         return;
     }
   });
@@ -82,6 +86,20 @@ angular.module('starter.controllers', [])
           }
       );
   };
+
+  // for testing on web browser
+  $scope.manual = function() {
+      if($scope.$storage.ids.length == 0) {
+        $('#error-dialog').removeClass('hide');
+        return;
+      }
+      $scope.$session.login_url = $scope.model.login_url;
+      var regex = /^oneblock:\/\/([^?]+)/;
+      var matches = regex.exec($scope.$session.login_url);
+      $scope.$session.login_host = matches[1];
+      $state.go( 'app.site_confirm', {}, {reload: true});    
+  };
+
 
   $scope.go = function ( path ) {
     $state.go( path );
@@ -175,6 +193,101 @@ angular.module('starter.controllers', [])
 })
 
 .controller('EditCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
+  $scope.page_title = 'Edit ID';
+  $scope.button_title = 'Edit ID';
+  $scope.isNew = false;
+  $scope.$storage = $localStorage;
+  $scope.$session = $sessionStorage;
+
+  if(_.isEmpty($scope.$session.id)) {
+    $state.go( 'app.unlock', {}, {reload: true});        
+    return;    
+  }
+
+  var id = $scope.$storage.ids[$scope.$storage.selectedId];
+  $scope.model = {title: id.title, passwordOld:'',password:'',password2:''};
+
+  $scope.confirmDelete = function(idForm) {
+    $("#button-delete").addClass('hide');
+    $("#button-confirm-delete").removeClass('hide');
+    $("#button-cancel-delete").removeClass('hide');
+  };
+
+  $scope.cancelDelete = function(idForm) {
+    $("#button-delete").removeClass('hide');
+    $("#button-confirm-delete").addClass('hide');
+    $("#button-cancel-delete").addClass('hide');
+  };
+
+  $scope.delete = function(idForm) {
+    $scope.$storage.ids.splice($scope.$storage.selectedId, 1);
+    $scope.$session.id = null;
+    $("#success-dialog").html('ID: ' + id.title + ' deleted');
+    $("#success-dialog").removeClass('hide');
+    $("#error-dialog").addClass('hide');
+    _.delay(function() {
+      $state.go( 'app.unlock', {}, {reload: true});
+    }, 3000); 
+  };
+
+  $scope.save = function(idForm) {
+    $scope.model.title = $scope.model.title.trim();
+    $scope.model.passwordOld = $scope.model.passwordOld.trim();
+    $scope.model.password = $scope.model.password.trim();
+    $scope.model.password2 = $scope.model.password2.trim();
+    if(_.isEmpty($scope.model.title)) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Title cannot be empty.');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
+    if(_.isEmpty($scope.model.passwordOld)) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Unlock code cannot be empty.');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
+    if(!_.isEmpty($scope.model.password) && $scope.model.password !== $scope.model.password2) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Unlock codes do not match.');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
+    var $passHash = CryptoJS.SHA256($scope.model.passwordOld).toString().substr(0,16);
+    if($passHash != id.passHash) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Unlock codes is not valid.');
+        $("#error-dialog").removeClass('hide');
+        return;      
+    }
+    $("#success-dialog").removeClass('hide');
+    $("#error-dialog").addClass('hide');
+
+    var newId = {
+        title: $scope.model.title,
+    }
+
+    if(!_.isEmpty($scope.model.password)) {
+      // re-encrypt with new password
+      var keyString = CryptoJS.AES.decrypt(id.keyObjEnc, $scope.model.passwordOld, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8);        
+      newId.keyObjEnc = CryptoJS.AES.encrypt(keyString, $scope.model.password, { format: JsonFormatter }) + '';
+      newId.passHash = CryptoJS.SHA256($scope.model.password).toString().substr(0,16);
+    } else {
+      // keep old password
+      newId.keyObjEnc = id.keyObjEnc;
+      newId.passHash = id.passHash;      
+    }
+
+    // store changes to id
+    $scope.$storage.ids[$scope.$storage.selectedId] = newId;
+    // switch to this id
+    $scope.$session.id = newId;
+    // go to scan page
+    $state.go( 'app.scan', {}, {reload: true});
+  };
+})
+
+.controller('NewCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
   $scope.page_title = 'Generate ID';
   $scope.button_title = 'Generate ID';
   $scope.isNew = true;
@@ -198,10 +311,6 @@ angular.module('starter.controllers', [])
         $("#error-text").html('Passwords do not match.');
         $("#error-dialog").removeClass('hide');
         return;
-    }
-    if(!_.isUndefined($scope.$session.foobar)) {
-        // id exists, updating
-        //$scope.$storage.ids[id.index].title = id.title;
     } else {
         $("#error-dialog").addClass('hide');
         $ionicLoading.show({
@@ -211,63 +320,66 @@ angular.module('starter.controllers', [])
           // generate a new id key
 
           try {
-          var mnemonic = new Mnemonic();
-          $scope.$session.prvKeyPhrase = mnemonic.toString().split(' ');
+            var mnemonic = new Mnemonic();
+            $scope.$session.prvKeyPhrase = mnemonic.toString().split(' ');
 
-          var hdPrvKey = mnemonic.toHDPrivateKey();
-          var derived = hdPrvKey.derive(0);
-          var prvKey = derived.privateKey;
+            var hdPrvKey = mnemonic.toHDPrivateKey();
+            var derived = hdPrvKey.derive(0);
+            var prvKey = derived.privateKey;
 
-          //var prvKeyBuffer = new Buffer(prvKeyMnemonic.toString());
-          //var prvKeyHash = Bitcore.crypto.Hash.sha256(prvKeyBuffer);
-          //var prvKeyBigNum = Bitcore.crypto.BN.fromBuffer(prvKeyHash);
-          //var prvKey = new Bitcore.PrivateKey(prvKeyBigNum);
+            //var prvKeyBuffer = new Buffer(prvKeyMnemonic.toString());
+            //var prvKeyHash = Bitcore.crypto.Hash.sha256(prvKeyBuffer);
+            //var prvKeyBigNum = Bitcore.crypto.BN.fromBuffer(prvKeyHash);
+            //var prvKey = new Bitcore.PrivateKey(prvKeyBigNum);
 
-          // assemble object to encrypt
-          var keyObject = {
-              idPrvKey: prvKey.toWIF(),
-              //revokePubKey: revokePrvKey.toPublicKey().toString()
-          };
-          
-          // make active id in session
-          $scope.$session.id = keyObject;
-          $scope.$session.id.title = $scope.model.title;
+            // assemble object to encrypt
+            var keyObj = {
+                idPrvKey: prvKey.toWIF(),
+                //revokePubKey: revokePrvKey.toPublicKey().toString()
+            };
+            
+            // make active id in session
+            $scope.$session.id = keyObj;
+            $scope.$session.id.title = $scope.model.title;
 
-          // make JSON string
-          var idString = JSON.stringify(keyObject);
+            // make JSON string
+            var idString = JSON.stringify(keyObj);
 
-          //console.log(idString);
+            //console.log(idString);
 
-          // get scrypt derived key: intentionally memory intensive
-          //var skey = scrypt($scope.model.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
-          //var keyenc = CryptoJS.AES.encrypt(idString, skey, { format: JsonFormatter });
+            // get scrypt derived key: intentionally memory intensive
+            //var skey = scrypt($scope.model.password, 'SaltyBlock', 512, 256, 1, 32).toString('hex');
+            //var keyenc = CryptoJS.AES.encrypt(idString, skey, { format: JsonFormatter });
 
-          // no scrypt
-          var keyenc = CryptoJS.AES.encrypt(idString, $scope.model.password, { format: JsonFormatter });
-          //console.log(CryptoJS.AES.decrypt(keyenc, $scope.model.password).toString(CryptoJS.enc.Utf8))
+            // no scrypt
+            var keyenc = CryptoJS.AES.encrypt(idString, $scope.model.password, { format: JsonFormatter });
+            //console.log(CryptoJS.AES.decrypt(keyenc, $scope.model.password).toString(CryptoJS.enc.Utf8))
 
-          //var decrypted = CryptoJS.AES.decrypt(keyenc, $scope.model.password).toString(CryptoJS.enc.Utf8);
-          //console.log('decrypted', JSON.parse(decrypted.toString(CryptoJS.enc.Utf8)));
+            //var decrypted = CryptoJS.AES.decrypt(keyenc, $scope.model.password).toString(CryptoJS.enc.Utf8);
+            //console.log('decrypted', JSON.parse(decrypted.toString(CryptoJS.enc.Utf8)));
 
-          // object to save to storage
-          var idObject = {
-              title: $scope.model.title,
-              passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
-              keyObjectEnc: keyenc + ''
+            // object to save to storage
+            var idObject = {
+                title: $scope.model.title,
+                passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
+                keyObjEnc: keyenc + ''
+            }
+
+            //console.log('idObject', idObject);
+
+            // save encrypted id
+            $scope.$storage.ids.push(idObject);
+            $scope.$storage.selectedId = $scope.$storage.ids.length - 1;
+            $ionicLoading.hide();
+            $ionicHistory.nextViewOptions({
+              disableBack: true
+            });
+            //$state.go( 'app.revoke', {}, {reload: true});          
+            $state.go( 'app.preexport', {}, {reload: true});          
+          } catch(e) {
+              $("#error-text").html('Unknown error.');
+              $("#error-dialog").removeClass('hide');
           }
-
-          // save encrypted id
-          $scope.$storage.ids.push(idObject);
-          $ionicLoading.hide();
-          $ionicHistory.nextViewOptions({
-            disableBack: true
-          });
-          //$state.go( 'app.revoke', {}, {reload: true});          
-          $state.go( 'app.preexport', {}, {reload: true});          
-        } catch(e) {
-            $("#error-text").html('Unknown error.');
-            $("#error-dialog").removeClass('hide');
-        }
         });
     }
   };
@@ -275,7 +387,7 @@ angular.module('starter.controllers', [])
 })
 
 .controller('ImportCtrl', function($window, $scope, $state, $ionicHistory, $sessionStorage) {
-  $scope.sessionStorage = $sessionStorage;
+  $scope.$session = $sessionStorage;
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
@@ -291,7 +403,7 @@ angular.module('starter.controllers', [])
               if(!result.cancelled && result.text != '') {
                 alert(result.text);
                   var id = JSON.parse(result.text);
-                  if(id && id.keyObjectEnc && id.title) {
+                  if(id && id.keyObjEnc && id.title) {
                      $scope.$storage.ids.push(id);
                      $("#success-text").html("Imported ID: " + id.title);
                      $("#success-dialog").removeClass('hide');
@@ -336,16 +448,16 @@ angular.module('starter.controllers', [])
           var prvKey = derived.privateKey;
           //console.log('prvKey', prvKey.toWIF());
 
-          var keyObject = {
+          var keyObj = {
               idPrvKey: prvKey.toWIF(),
           };
           
           // make active id in session
-          $scope.$session.id = keyObject;
+          $scope.$session.id = keyObj;
           $scope.$session.id.title = $scope.model.title;
 
           // make JSON string
-          var idString = JSON.stringify(keyObject);
+          var idString = JSON.stringify(keyObj);
 
           // encrypt the key with 256 bit AES
           var keyenc = CryptoJS.AES.encrypt(idString, $scope.model.password, { format: JsonFormatter });
@@ -354,7 +466,7 @@ angular.module('starter.controllers', [])
           var idObject = {
               title: $scope.model.title,
               passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
-              keyObjectEnc: keyenc + ''
+              keyObjEnc: keyenc + ''
           }
 
           // save encrypted id
@@ -370,7 +482,7 @@ angular.module('starter.controllers', [])
   };
 
   $scope.go = function ( path ) {
-    $sessionStorage.id = null;
+    $scope.$session.id = null;
     $state.go( path, {}, {reload: true});
   };
 })
@@ -383,12 +495,21 @@ angular.module('starter.controllers', [])
   });
   $scope.model = {};
 
+  if($scope.$storage.ids.length == 0) {
+      $state.go( 'app.new', {}, {reload: true} );
+      return;
+  }
+
   $scope.unlockId = function(unlockForm) {
     var id = $scope.$storage.ids[$scope.$storage.selectedId];
     if(_.isEmpty($scope.model.password) || CryptoJS.SHA256($scope.model.password).toString().substr(0,16) != id.passHash) {
         unlockForm.password.$setValidity("badPass", false);
     } else {
-        $scope.$session.id = JSON.parse(CryptoJS.AES.decrypt(id.keyObjectEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));        
+        var sessionId = {
+          title: id.title,
+          idPrvKey: CryptoJS.AES.decrypt(id.keyObjEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8)
+        }
+        $scope.$session.id = sessionId;
         $state.go( 'app.scan' );
     }
   };
@@ -417,14 +538,14 @@ angular.module('starter.controllers', [])
 })
 
 .controller('PreExportCtrl', function($scope, $state, $ionicLoading, $ionicHistory, $sessionStorage) {
-  $scope.sessionStorage = $sessionStorage;
+  $scope.$session = $sessionStorage;
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
   $scope.go = function ( path ) {
     $state.go( path, {}, {reload: true});
   };
-  $scope.title = $sessionStorage.id.title;
+  $scope.title = $scope.$session.id.title;
   $scope.finish = function() {
     $scope.$session.prvKeyPhrase = null;
     $ionicHistory.nextViewOptions({
@@ -435,12 +556,21 @@ angular.module('starter.controllers', [])
 
 })
 
+.controller('LogoutCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage) {
+  $sessionStorage.id = null;
+  $state.go( 'app.unlock', {}, {reload: true});
+})
+
 .controller('ExportCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage) {
   $scope.$storage = $localStorage;
   $scope.$session = $sessionStorage;
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
+  if(_.isEmpty($scope.$session.id)) {
+    $state.go( 'app.unlock', {}, {reload: true});        
+    return;    
+  }
   $scope.go = function ( path ) {
     $state.go( path, {}, {reload: true});
   };
