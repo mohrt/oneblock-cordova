@@ -10,12 +10,12 @@ input[type="text"],input[type="password"] {
 .red {
 	color: red;
 }
-#error-dialog, #error-dialog-phrase {
+#error-dialog, #error-dialog-phrase, #error-dialog-clipboard, #error-dialog-manual {
 	border: #ff9999 solid 1px;
 	background: #ffeeee;
 	color: red;
 }
-#success-dialog, #success-dialog-phrase {
+#success-dialog, #success-dialog-phrase, #success-dialog-clipboard, #success-dialog-manual {
 	border: #99dd99 solid 1px;
 	background: #eeffee;
 	color: green;

@@ -1,31 +1,78 @@
 <ion-view view-title="1Block: Export ID">
-  <ion-content class="padding">
-    <div class="row">
-    	<div class="col col-center">
-    		<div id="qrcode_export" class="center-qr"></div>
-    	</div>
-	</div>
-    <div class="row">
-    	<div class="col col-center text-center">
-    		<b>ID: "{{$session.id.title}}"</b>
-    	</div>
-	</div>
-    <div class="row">
-    	<div class="col col-center">
-    		<div class="card">
-			  <div class="item item-text-wrap text-center">
-    			<b>Scan to export this ID to another device.</b>
-			  </div>
-			</div>
-    	</div>
-	</div>
-    <div class="row">
-    	<div class="col text-center">
-    	</div>
-    	<div class="col text-center">
-    		<button class="button button-positive" ng-click="go('app.scan')">
-    			Done
-             </button>
-    	</div>
-  </ion-content>
+<ion-tabs class="tabs-positive">
+
+    <ion-tab title="QR Code">
+        <ion-view>
+            <ion-content class="has-header" padding="true">
+                <div class="row">
+                    <div class="col col-center">
+                        <div id="qrcode_export" class="center-qr"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col col-center text-center">
+                        <b>ID: "{{$session.id.title}}"</b>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col col-center text-center">
+                        <div id="success-dialog" class="hide text-center">
+                            <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+                        </div>
+                        <div id="error-dialog" class="hide text-center">
+                            <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col text-center">
+                        <button class="button button-positive" ng-click="go('app.scan')">
+                            Done
+                         </button>
+                    </div>
+                </div>
+            </ion-content>
+        </ion-view>
+    </ion-tab>
+ 
+     <ion-tab title="Manual">
+        <ion-view>
+            <ion-content class="has-header" padding="true">
+                    <div class="row">
+                        <div class="col col-center text-center">
+                            <label class="item item-input">
+                                <textarea id="id-export">{{$session.exportString}}</textarea>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-center text-center">
+                            <button class="clipboard-btn" data-clipboard-target="#id-export">
+                                Copy to clipboard
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col col-center text-center">
+                            <div id="success-dialog-clipboard" class="hide text-center">
+                                <i class="icon ion-checkmark-circled"></i> <span id="success-text">ID "{{$session.id.title}}" Copied.</span>
+                            </div>
+                            <div id="error-dialog-clipboard" class="hide text-center">
+                                <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col text-center">
+                            <button class="button button-positive" ng-click="go('app.scan')">
+                                Done
+                             </button>
+                        </div>
+                    </div>
+            </ion-content>
+        </ion-view>
+     </ion-tab>
+ 
+</ion-tabs>
 </ion-view>
+

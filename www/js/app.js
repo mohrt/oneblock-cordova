@@ -111,13 +111,13 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
     }
   })
 
-  .state('app.preexport', {
+  .state('app.phrase', {
     cache: false,
-    url: '/preexport',
+    url: '/phrase',
     views: {
       'menuContent': {
-        templateUrl: 'templates/preexport.html',
-        controller: 'PreExportCtrl'
+        templateUrl: 'templates/phrase.html',
+        controller: 'PhraseCtrl'
       }
     }
   })

@@ -49,25 +49,14 @@ angular.module('starter.controllers', [])
       $("#login-buttons").addClass('hide');
       $("#success-dialog").addClass('hide');
       $("#error-dialog").addClass('hide');
-      if(_.isUndefined($window.cordova)) {
-        $scope.fakeScan();
+      if(_.isUndefined($window.cordova) || _.isUndefined($window.cordova.plugins) || _.isUndefined($window.cordova.plugins.barcodeScanner)) {
+          $("#error-text").html('barcode scanner not found.');
+          $("#error-dialog").removeClass('hide');
+          return;
       } else {
         $scope.scanQRCode();
       }
   }
-
-  // for testing on web browser
-  $scope.fakeScan = function() {
-      if($scope.$storage.ids.length == 0) {
-        $('#error-dialog').removeClass('hide');
-        return;
-      }
-      $scope.$session.login_url = 'oneblock://1block.io/api/login?x=73b130bd13631e589a99144e3a3c41d7&u=1';
-      var regex = /^oneblock:\/\/([^?]+)/;
-      var matches = regex.exec($scope.$session.login_url);
-      $scope.$session.login_host = matches[1];
-      $state.go( 'app.site_confirm', {}, {reload: true});    
-  };
 
   $scope.scanQRCode = function() {
       $window.cordova.plugins.barcodeScanner.scan(
@@ -87,7 +76,6 @@ angular.module('starter.controllers', [])
       );
   };
 
-  // for testing on web browser
   $scope.manual = function() {
       if($scope.$storage.ids.length == 0) {
         $('#error-dialog').removeClass('hide');
@@ -109,6 +97,8 @@ angular.module('starter.controllers', [])
 .controller('SiteConfirmCtrl', function($window, $scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
   $scope.$storage = $localStorage;
   $scope.$session = $sessionStorage;
+
+  var sitePubAddress = null;
 
   $ionicHistory.nextViewOptions({
     disableBack: true,
@@ -136,7 +126,7 @@ angular.module('starter.controllers', [])
       $ionicLoading.show({
           template: 'logging in ...'
       });
-      _.defer(function() {
+      _.delay(function() {
           // generate site key
           var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_host);
           var siteHash = Bitcore.crypto.Hash.sha256(siteBuffer);
@@ -145,7 +135,7 @@ angular.module('starter.controllers', [])
           // sign challenge with key
           var loginSig = Message($scope.challenge).sign(sitePrvKey).toString();
           // generate public key
-          var sitePubAddress =  sitePrvKey.toPublicKey().toAddress().toString();
+          sitePubAddress =  sitePrvKey.toPublicKey().toAddress().toString();
           // generate site revoke key
           //var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
           //var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
@@ -173,6 +163,10 @@ angular.module('starter.controllers', [])
               data: data,
               success: function (data, text, xhr) {
                   //console.log('success', data, text, xhr.status);
+                  if(!data.hasRevoke) {
+                    //console.log('setting revoke');
+                    $scope.submitRevoke();
+                  }
                   $ionicLoading.hide();
                   $("#login-buttons").addClass('hide');
                   $("#success-dialog").removeClass('hide');
@@ -187,6 +181,49 @@ angular.module('starter.controllers', [])
                   $("#error-dialog").removeClass('hide');
               }
           });
+    }, 500);
+  }
+
+  $scope.submitRevoke = function() {
+    // generate site revoke key
+    try {
+      var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
+      var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
+      var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
+      var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
+      // generate revoke public key
+      var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
+      // generate secret, store on server
+      var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
+      // use 32 chars of sha256 of kEkM for comparison
+      var siteRevSecretKey = CryptoJS.SHA256(siteRevSecret.kEkM.toString('hex')).toString().substr(0,32);      
+    } catch(e) {
+      // unknown error generating revoke secret, quit
+      return;
+    }
+    var data = JSON.stringify({
+      pubAddress: sitePubAddress,
+      revokePubKey: siteRevPubKey,
+      revokeSecretKey: siteRevSecretKey,
+    });
+    //console.log('revoke data', data);
+    var regex = /^oneblock:\/\/([^?]+)/;
+    var matches = regex.exec($scope.$session.login_url);
+    var revoke_url = $scope.schema + '://' + matches[1] + '/setrevoke';
+    //console.log('revoke_url', revoke_url);
+    // send revoke secret back to server
+    $.ajax({
+        type: 'POST',
+        url: revoke_url,
+        contentType: "application/json",
+        dataType: "json",
+        data: data,
+        success: function (data, text, xhr) {
+            //console.log('success setting revoke', data, text, xhr.status);
+        },
+        error: function (request, status, error) {
+            //console.log('error setting revoke', request.responseText, status, error);
+        }
     });
   }
 
@@ -316,7 +353,7 @@ angular.module('starter.controllers', [])
         $ionicLoading.show({
           template: 'generating ...'
         });
-        _.defer(function() {
+        _.delay(function() {
           // generate a new id key
 
           try {
@@ -324,18 +361,13 @@ angular.module('starter.controllers', [])
             $scope.$session.prvKeyPhrase = mnemonic.toString().split(' ');
 
             var hdPrvKey = mnemonic.toHDPrivateKey();
-            var derived = hdPrvKey.derive(0);
-            var prvKey = derived.privateKey;
-
-            //var prvKeyBuffer = new Buffer(prvKeyMnemonic.toString());
-            //var prvKeyHash = Bitcore.crypto.Hash.sha256(prvKeyBuffer);
-            //var prvKeyBigNum = Bitcore.crypto.BN.fromBuffer(prvKeyHash);
-            //var prvKey = new Bitcore.PrivateKey(prvKeyBigNum);
+            var key = hdPrvKey.derive(0);
+            var rkey = hdPrvKey.derive(1);
 
             // assemble object to encrypt
             var keyObj = {
-                idPrvKey: prvKey.toWIF(),
-                //revokePubKey: revokePrvKey.toPublicKey().toString()
+                idPrvKey: key.privateKey.toWIF(),
+                revokePubKey: rkey.publicKey.toString()
             };
             
             // make active id in session
@@ -375,12 +407,14 @@ angular.module('starter.controllers', [])
               disableBack: true
             });
             //$state.go( 'app.revoke', {}, {reload: true});          
-            $state.go( 'app.preexport', {}, {reload: true});          
+            $state.go( 'app.phrase', {}, {reload: true});          
           } catch(e) {
-              $("#error-text").html('Unknown error.');
+              //console.log(e);
+              $("#error-text").html('error generating id.');
               $("#error-dialog").removeClass('hide');
+              $ionicLoading.hide();
           }
-        });
+        }, 500);
     }
   };
 
@@ -398,10 +432,14 @@ angular.module('starter.controllers', [])
     $("#error-dialog").addClass('hide');
     $("#success-dialog-phrase").addClass('hide');
     $("#error-dialog-phrase").addClass('hide');
+    if(_.isUndefined($window.cordova) || _.isUndefined($window.cordova.plugins) || _.isUndefined($window.cordova.plugins.barcodeScanner)) {
+          $("#error-text").html('barcode scanner not found.');
+          $("#error-dialog").removeClass('hide');
+          return;
+    } else {
       $window.cordova.plugins.barcodeScanner.scan(
           function (result) {
               if(!result.cancelled && result.text != '') {
-                alert(result.text);
                   var id = JSON.parse(result.text);
                   if(id && id.keyObjEnc && id.title) {
                      $scope.$storage.ids.push(id);
@@ -418,6 +456,7 @@ angular.module('starter.controllers', [])
               $("#error-dialog").removeClass('hide');
           }
       );
+    }
   };
 
   $scope.importPhrase = function() {
@@ -444,12 +483,10 @@ angular.module('starter.controllers', [])
     } else {
           var mnemonic = new Mnemonic(phraseString);
           var hdPrvKey = mnemonic.toHDPrivateKey();
-          var derived = hdPrvKey.derive(0);
-          var prvKey = derived.privateKey;
-          //console.log('prvKey', prvKey.toWIF());
 
           var keyObj = {
-              idPrvKey: prvKey.toWIF(),
+              idPrvKey: hdPrvKey.derive(0).prvKey.toWIF(),
+              revokePubKey: hdPrvKey.derive(1).pubAddress()
           };
           
           // make active id in session
@@ -480,6 +517,27 @@ angular.module('starter.controllers', [])
           $state.go( 'app.scan', {}, {reload: true});        
   }
   };
+
+  $scope.manual = function() {
+    $("#success-dialog-manual").addClass('hide');
+    $("#error-dialog-manual").addClass('hide');
+    try {
+      var id = JSON.parse($('#id-manual').val());
+    } catch (e) {
+      $("#error-dialog-manual").html('Error importing ID: Bad JSON');
+      $("#error-dialog-manual").removeClass('hide');
+      return;
+    }
+    if(id && id.keyObjEnc && id.title) {
+       $scope.$storage.ids.push(id);
+       $("#success-text-manual").html("Imported ID: " + id.title);
+       $("#success-dialog-manual").removeClass('hide');
+    } else {
+      $("#error-text-manual").html('Error importing ID');
+      $("#error-dialog-manual").removeClass('hide');
+    }
+  };
+
 
   $scope.go = function ( path ) {
     $scope.$session.id = null;
@@ -537,7 +595,7 @@ angular.module('starter.controllers', [])
   });
 })
 
-.controller('PreExportCtrl', function($scope, $state, $ionicLoading, $ionicHistory, $sessionStorage) {
+.controller('PhraseCtrl', function($scope, $state, $ionicLoading, $ionicHistory, $sessionStorage) {
   $scope.$session = $sessionStorage;
   $ionicHistory.nextViewOptions({
     disableBack: true
@@ -567,6 +625,15 @@ angular.module('starter.controllers', [])
   $ionicHistory.nextViewOptions({
     disableBack: true
   });
+  $scope.$session.exportString = JSON.stringify($scope.$storage.ids[$scope.$storage.selectedId]);
+  var clipboard = new Clipboard('.clipboard-btn');
+  clipboard.on('success', function(e) {
+      $("#success-dialog-clipboard").removeClass('hide');
+      $("#error-dialog-clipboard").addClass('hide');
+      _.delay(function() {
+          $("#success-dialog-clipboard").addClass('hide');
+      }, 2000);
+  });
   if(_.isEmpty($scope.$session.id)) {
     $state.go( 'app.unlock', {}, {reload: true});        
     return;    
@@ -575,7 +642,7 @@ angular.module('starter.controllers', [])
     $state.go( path, {}, {reload: true});
   };
   _.defer(function() {
-    new QRCode($('#qrcode_export')[0], JSON.stringify($scope.$storage.ids[$scope.$storage.selectedId]));    
+    new QRCode($('#qrcode_export')[0], $scope.$session.exportString);    
   });
   $scope.print = function() {
   }

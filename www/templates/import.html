@@ -4,9 +4,12 @@
     <ion-tab title="QR Code Import">
         <ion-view>
             <ion-content class="has-header" padding="true">
+            <div class="row">
+                <div class="col">
                     <button class="button button-block ion-camera button-positive" ng-click="scan()">
                         Scan QR Code to Import
                     </button>
+                </div>
             </div>
             <div id="success-dialog" class="hide text-center">
                 <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
@@ -136,6 +139,30 @@
         </ion-view>
      </ion-tab>
  
+    <ion-tab title="Manual Import">
+        <ion-view>
+            <ion-content class="has-header" padding="true">
+                <div class="row">
+                    <div class="col">
+                        <label class="item item-input">
+                            <textarea id="id-manual" placeholder="paste JSON here"></textarea>
+                        </label>
+                        <button class="button button-block button-positive" ng-click="manual()">
+                            Import ID
+                        </button>
+                    </div>
+                </div>
+                <div id="success-dialog-manual" class="hide text-center">
+                    <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+                </div>
+                <div id="error-dialog-manual" class="hide text-center">
+                    <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                </div>
+            </ion-content>
+        </ion-view>
+    </ion-tab>
+
+
 </ion-tabs>
 </ion-view>
 
