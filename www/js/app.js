@@ -100,17 +100,6 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
     }
   })
 
-  .state('app.revoke', {
-    cache: false,
-    url: '/revoke',
-    views: {
-      'menuContent': {
-        templateUrl: 'templates/revoke.html',
-        controller: 'RevokeCtrl'
-      }
-    }
-  })
-
   .state('app.phrase', {
     cache: false,
     url: '/phrase',
@@ -140,6 +129,17 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
       'menuContent': {
         templateUrl: 'templates/unlock.html',
         controller: 'UnlockCtrl'
+      }
+    }
+  })
+
+  .state('app.revoke', {
+    cache: false,
+    url: '/revoke',
+    views: {
+      'menuContent': {
+        templateUrl: 'templates/revoke.html',
+        controller: 'RevokeCtrl'
       }
     }
   })

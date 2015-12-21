@@ -1,34 +1,120 @@
-<ion-view view-title="Revoke Secret">
-  <ion-content class="padding">
-    <div class="row">
-    	<div class="col col-center">
-    		<div id="qrcode_revoke" class="center-qr"></div>
-    	</div>
-	</div>
-    <div class="row">
-    	<div class="col col-center text-center">
-    		<b>{{sessionStorage.revokePhrase}}</b>
-    	</div>
-	</div>
-    <div class="row">
-    	<div class="col col-center">
-    		<div class="card">
-			  <div class="item item-text-wrap">
-	    		<b>Write this pass phrase down and keep it safe. Use this if you ever need to replace your ID.
-    			You may want to do this if your device is lost or stolen. <span class="red">Do this now,
-    			you cannot recover it later.</span></b>
-			  </div>
-			</div>
-    	</div>
-	</div>
-    <div class="row">
-    	<div class="col text-center">
-    	</div>
-    	<div class="col text-center">
-    		<button class="button button-positive" ng-click="go('app.preexport')">
-    			Next
-             </button>
-    	</div>
-	</div>
-  </ion-content>
+<ion-view view-title="1Block: Revoke ID">
+    <ion-content class="has-header" padding="true">
+        <div class="row">
+            <div class="col col-center text-center">
+                <div class="list">
+                <div class="row">
+                    <div class="col"><b>Revoking ID "{{$session.id.title}}"<br>Input the 12 word phrase for your ID</b></div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[0]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[1]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[2]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[3]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[4]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[5]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[6]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[7]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[8]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[9]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[10]" autocapitalize="none" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="item item-input">
+                          <input type="text" ng-model="phrase[11]" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label class="item item-input">
+                            <input type="password" placeholder="ID '{{$session.id.title}}' unlock code" ng-model="model.password">
+                        </label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col"><b>Choose the ID to replace this ID</b></div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                          <div class="form-group list">
+                              <label class="item item-input item-select">
+                                <div class="input-label">
+                                  Replacement ID
+                                </div>
+                                <select ng-model="model.replaceId" ng-options="$storage.ids.indexOf(id) as id.title for id in $storage.ids"></select>
+                              </label>
+                            <label class="item item-input">
+                                <input type="password" placeholder="replacement ID unlock code" ng-model="model.replacePassword">
+                            </label>
+                          </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div id="success-dialog" class="hide text-center">
+                            <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+                        </div>
+                        <div id="error-dialog" class="hide text-center">
+                            <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+                        </div>
+                        <button class="button button-block button-positive" ng-click="revokeId()">
+                            Revoke and Replace ID
+                        </button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </ion-content>
 </ion-view>
+

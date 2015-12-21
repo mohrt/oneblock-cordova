@@ -126,7 +126,7 @@ angular.module('starter.controllers', [])
       $ionicLoading.show({
           template: 'logging in ...'
       });
-      _.delay(function() {
+      _.defer(function() {
           // generate site key
           var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_host);
           var siteHash = Bitcore.crypto.Hash.sha256(siteBuffer);
@@ -162,10 +162,9 @@ angular.module('starter.controllers', [])
               dataType: "json",
               data: data,
               success: function (data, text, xhr) {
-                  //console.log('success', data, text, xhr.status);
+                  console.log('success', data, text, xhr.status);
                   if(!data.hasRevoke) {
-                    //console.log('setting revoke');
-                    $scope.submitRevoke();
+                    $scope.submitRevoke(data.revokeURL);
                   }
                   $ionicLoading.hide();
                   $("#login-buttons").addClass('hide');
@@ -181,10 +180,10 @@ angular.module('starter.controllers', [])
                   $("#error-dialog").removeClass('hide');
               }
           });
-    }, 500);
+    });
   }
 
-  $scope.submitRevoke = function() {
+  $scope.submitRevoke = function(revokeURL) {
     // generate site revoke key
     try {
       var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
@@ -195,8 +194,8 @@ angular.module('starter.controllers', [])
       var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
       // generate secret, store on server
       var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
-      // use 32 chars of sha256 of kEkM for comparison
-      var siteRevSecretKey = CryptoJS.SHA256(siteRevSecret.kEkM.toString('hex')).toString().substr(0,32);      
+      // hex encode encryption of "1Block", use first 32 as secret key
+      var siteRevSecretKey = siteRevSecret.encrypt('1Block').toString('hex').substr(0,32);   
     } catch(e) {
       // unknown error generating revoke secret, quit
       return;
@@ -204,13 +203,13 @@ angular.module('starter.controllers', [])
     var data = JSON.stringify({
       pubAddress: sitePubAddress,
       revokePubKey: siteRevPubKey,
-      revokeSecretKey: siteRevSecretKey,
+      revokeSecretKey: siteRevSecretKey
     });
-    //console.log('revoke data', data);
+    console.log('revoke data', data);
     var regex = /^oneblock:\/\/([^?]+)/;
     var matches = regex.exec($scope.$session.login_url);
-    var revoke_url = $scope.schema + '://' + matches[1] + '/setrevoke';
-    //console.log('revoke_url', revoke_url);
+    var revoke_url = revokeURL;
+    console.log('revoke_url', revoke_url);
     // send revoke secret back to server
     $.ajax({
         type: 'POST',
@@ -315,6 +314,7 @@ angular.module('starter.controllers', [])
       newId.passHash = id.passHash;      
     }
 
+    console.log('newId', newId);
     // store changes to id
     $scope.$storage.ids[$scope.$storage.selectedId] = newId;
     // switch to this id
@@ -394,6 +394,7 @@ angular.module('starter.controllers', [])
             var idObject = {
                 title: $scope.model.title,
                 passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
+                revokeModeEnabled: false,
                 keyObjEnc: keyenc + ''
             }
 
@@ -485,10 +486,10 @@ angular.module('starter.controllers', [])
           var hdPrvKey = mnemonic.toHDPrivateKey();
 
           var keyObj = {
-              idPrvKey: hdPrvKey.derive(0).prvKey.toWIF(),
-              revokePubKey: hdPrvKey.derive(1).pubAddress()
+              idPrvKey: hdPrvKey.derive(0).privateKey.toWIF(),
+              revokePubKey: hdPrvKey.derive(1).publicKey.toString()
           };
-          
+
           // make active id in session
           $scope.$session.id = keyObj;
           $scope.$session.id.title = $scope.model.title;
@@ -563,10 +564,8 @@ angular.module('starter.controllers', [])
     if(_.isEmpty($scope.model.password) || CryptoJS.SHA256($scope.model.password).toString().substr(0,16) != id.passHash) {
         unlockForm.password.$setValidity("badPass", false);
     } else {
-        var sessionId = {
-          title: id.title,
-          idPrvKey: CryptoJS.AES.decrypt(id.keyObjEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8)
-        }
+        var sessionId = JSON.parse(CryptoJS.AES.decrypt(id.keyObjEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
+        console.log('sessionId', sessionId);
         $scope.$session.id = sessionId;
         $state.go( 'app.scan' );
     }
@@ -578,21 +577,95 @@ angular.module('starter.controllers', [])
 })
 
 
-.controller('RevokeCtrl', function($scope, $state, $ionicHistory, $sessionStorage) {
-  $ionicHistory.nextViewOptions({
-    disableBack: true
-  });
-  $scope.go = function ( path ) {
-    $sessionStorage.revokePhrase = null;
-    $state.go( path, {}, {reload: true});
+.controller('RevokeCtrl', function($scope, $state, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
+  $scope.page_title = 'Revoke ID';
+  $scope.button_title = 'Revoke ID';
+  $scope.$storage = $localStorage;
+  $scope.$session = $sessionStorage;
+
+  if(_.isEmpty($scope.$session.id)) {
+    $state.go( 'app.unlock', {}, {reload: true});        
+    return;    
+  }
+  $scope.model = {replaceId: 0, replacePassword: '', password: ''};
+  $scope.phrase = [];
+
+  $scope.revokeId = function() {
+    console.log('$scope.$session.id', $scope.$session.id);
+    $("#success-dialog").addClass('hide');
+    $("#error-dialog").addClass('hide');
+    console.log('revokeId', $scope.model.replaceId, $scope.$storage.selectedId);
+    if($scope.model.replaceId == $scope.$storage.selectedId) {
+      $("#error-text").html('Replace ID cannot be same as Revoke ID');
+      $("#error-dialog").removeClass('hide');
+      return;
+    }
+    $scope.model.password = $scope.model.password.trim();
+    var $passHash = CryptoJS.SHA256($scope.model.password).toString().substr(0,16);
+    if($passHash != $scope.$storage.ids[$scope.$storage.selectedId].passHash) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Revoke ID unlock codes is not valid.');
+        $("#error-dialog").removeClass('hide');
+        return;      
+    }
+    var revokeId = $scope.$storage.ids[$scope.$storage.selectedId];
+    $scope.model.replacePassword = $scope.model.replacePassword.trim();
+    if(_.isEmpty($scope.model.replacePassword)) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Replace ID unlock code cannot be empty.');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
+    var $revokePassHash = CryptoJS.SHA256($scope.model.replacePassword).toString().substr(0,16);
+    if($revokePassHash != $scope.$storage.ids[$scope.model.replaceId].passHash) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Unlock codes is not valid.');
+        $("#error-dialog").removeClass('hide');
+        return;      
+    }
+    var replaceId = $scope.$storage.ids[$scope.model.replaceId];
+
+    var phraseString = $scope.phrase.join(' ');
+    console.log('phraseString', phraseString);
+    if(!Mnemonic.isValid(phraseString)) {
+      $("#error-text").html('Invalid Phrase.');
+      $("#error-dialog").removeClass('hide');
+      return;
+    }
+
+    var phraseString = 'media stumble pottery month evidence float valley glide life food fall clap';
+
+    var mnemonic = new Mnemonic(phraseString);
+    var hdPrvKey = mnemonic.toHDPrivateKey();
+
+    var keyObj = {
+        idPrvKey: hdPrvKey.derive(0).privateKey.toWIF(),
+        revokePubKey: hdPrvKey.derive(1).publicKey.toString(),
+        revokePrvKey: hdPrvKey.derive(1).privateKey.toString(),
+        revokeModeEnabled: true
+    };
+
+    //console.log('ok', replaceId, revokeId, keyObj);
+
+    var revokeIdObj = JSON.parse(CryptoJS.AES.decrypt(revokeId.keyObjEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
+    var replaceIdObj = JSON.parse(CryptoJS.AES.decrypt(replaceId.keyObjEnc, $scope.model.replacePassword, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
+
+    //console.log('decrypted', revokeIdObj, replaceIdObj);
+
+    if(revokeIdObj.idPrvKey != keyObj.idPrvKey) {
+        $("#success-dialog").addClass('hide');
+        $("#error-text").html('Incorrect phrase for revoke ID');
+        $("#error-dialog").removeClass('hide');
+        return;
+    }
+
+    console.log('OK');
+
+    /* TODO: set id into revoke mode, then implement revoking with server */
+
+
   };
-  $scope.title = $sessionStorage.id.title;
-  $scope.sessionStorage = $sessionStorage;
-  $scope.$on('$ionicView.afterEnter', function(){
-    _.defer(function() {
-      new QRCode($('#qrcode_revoke')[0], $sessionStorage.revokePhrase );
-    });
-  });
+
 })
 
 .controller('PhraseCtrl', function($scope, $state, $ionicLoading, $ionicHistory, $sessionStorage) {
