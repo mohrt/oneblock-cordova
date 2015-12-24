@@ -22,6 +22,13 @@ angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessa
       StatusBar.styleDefault();
     }
     document.addEventListener("deviceready", onDeviceReady, false);
+    $window.addEventListener('LaunchUrl', function(event) {
+        $rootScope.$session.login_url = event.detail.login_url;
+        var regex = /^oneblock:\/\/([^?]+)/;
+        var matches = regex.exec($rootScope.$session.login_url);
+        $rootScope.$session.login_host = matches[1];
+        $state.go( 'app.site_confirm', {}, {reload: true});    
+    });
   });
   function onDeviceReady() {
     document.addEventListener("pause", onDevicePause, false);
