@@ -29,8 +29,8 @@ angular.module('starter.controllers', [])
 
   //$scope.$session.id = null;
 
-  //console.log($scope.$session.id);
-  //console.log($scope.$storage.ids);
+  console.log($scope.$session.id);
+  console.log($scope.$storage.ids);
 
   //$scope.$session.login_url = '';
   $scope.model = {login_url:''};
@@ -130,6 +130,7 @@ angular.module('starter.controllers', [])
       $("#login-buttons").addClass('hide');
       $("#success-dialog").addClass('hide');
       $("#error-dialog").addClass('hide');
+      $scope.$session.login_url = null;
       $state.go( 'app.scan', {}, {reload: true});
   }
 
@@ -149,7 +150,7 @@ angular.module('starter.controllers', [])
       });
       _.defer(function() {
           // generate site key
-          var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.login_host);
+          var siteBuffer = new Buffer($scope.$session.id.idPrvKey + $scope.$session.login_host);
           var siteHash = Bitcore.crypto.Hash.sha256(siteBuffer);
           var siteBigNum = Bitcore.crypto.BN.fromBuffer(siteHash);
           var sitePrvKey = new Bitcore.PrivateKey(siteBigNum);
@@ -158,7 +159,7 @@ angular.module('starter.controllers', [])
           // generate public key
           sitePubAddress =  sitePrvKey.toPublicKey().toAddress().toString();
           // generate site revoke key
-          //var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
+          //var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.$session.login_host);
           //var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
           //var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
           //var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
@@ -171,11 +172,12 @@ angular.module('starter.controllers', [])
           var data = JSON.stringify({
                 loginSig: loginSig,
                 pubAddress: sitePubAddress,
-                pubKey: sitePrvKey.toPublicKey().toString(),
-                //revokePubKey: siteRevPubKey,
-                //revokeSecretKey: siteRevSecretKey,
-                message: $scope.challenge
+                //pubKey: sitePrvKey.toPublicKey().toString(),
+                message: $scope.challenge,
+                isRevoking: $scope.$session.id.isRevoking
               });
+          console.log('$scope.$session.id', $scope.$session.id);
+          console.log('sending data', data);
           $.ajax({
               type: 'POST',
               url: $scope.challenge.replace(/^oneblock/, $scope.schema),
@@ -184,8 +186,12 @@ angular.module('starter.controllers', [])
               data: data,
               success: function (data, text, xhr) {
                   console.log('success', data, text, xhr.status);
-                  if(!data.hasRevoke) {
-                    $scope.submitRevoke(data.revokeURL);
+                  if(data.isNew) {
+                    // first time logging in, send revoke info
+                    $scope.submitRevoke(data.setRevokeURL);
+                  } else if ($scope.$session.id.isRevoking && data.revokePubKey && data.revokeURL) {
+                    // revoke the ID
+                    $scope.revokeId(data.revokeURL, data.revokePubKey);
                   }
                   $scope.$session.login_url = '';
                   $ionicLoading.hide();
@@ -205,11 +211,11 @@ angular.module('starter.controllers', [])
     });
   }
 
-  $scope.submitRevoke = function(revokeURL) {
-    console.log('submitRevoke', revokeURL);
-    // generate site revoke key
+  $scope.submitRevoke = function(setRevokeURL) {
+    console.log('setting revoke', $scope.$session.login_host);
     try {
-      var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.login_host);
+      // generate site revoke key
+      var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.$session.login_host);
       var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
       var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
       var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
@@ -217,10 +223,11 @@ angular.module('starter.controllers', [])
       var siteRevPubKey =  siteRevPrvKey.toPublicKey().toString();
       // generate secret, store on server
       var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey($scope.$session.id.revokePubKey));
-      // hex encode encryption of "1Block", use first 32 as secret key
-      var siteRevSecretKey = siteRevSecret.encrypt('1Block').toString('hex').substr(0,32);   
+      // hex encode encryption of login_host, use first 32 as secret key
+      var siteRevSecretKey = siteRevSecret.encrypt($scope.$session.login_host).toString('hex').substr(0,32);   
     } catch(e) {
       // unknown error generating revoke secret, quit
+      console.log('unknown error generating revoke secret');
       return;
     }
     var data = JSON.stringify({
@@ -228,15 +235,11 @@ angular.module('starter.controllers', [])
       revokePubKey: siteRevPubKey,
       revokeSecretKey: siteRevSecretKey
     });
-    console.log('revoke data', data);
-    var regex = /^oneblock:\/\/([^?]+)/;
-    var matches = regex.exec($scope.$session.login_url);
-    var revoke_url = revokeURL;
-    console.log('revoke_url', revoke_url);
+    console.log('setRevokeURL', setRevokeURL);
     // send revoke secret back to server
     $.ajax({
         type: 'POST',
-        url: revoke_url,
+        url: setRevokeURL,
         contentType: "application/json",
         dataType: "json",
         data: data,
@@ -245,6 +248,63 @@ angular.module('starter.controllers', [])
         },
         error: function (request, status, error) {
             //console.log('error setting revoke', request.responseText, status, error);
+        }
+    });
+  }
+
+  $scope.revokeId = function(revokeURL, revokePubKey) {
+
+    // generate site revoke key and secret
+    var siteRevBuffer = new Buffer($scope.$session.id.revokePubKey + $scope.$session.login_host);
+    var siteRevHash = Bitcore.crypto.Hash.sha256(siteRevBuffer);
+    var siteRevBigNum = Bitcore.crypto.BN.fromBuffer(siteRevHash);
+    var siteRevPrvKey = new Bitcore.PrivateKey(siteRevBigNum);
+
+    // generate secret, send to server for revoking
+    var siteRevSecret = ECIES().privateKey(siteRevPrvKey).publicKey(Bitcore.PublicKey(revokePubKey));
+    // hex encode encryption login_host, use first 32 as secret key
+    var siteRevSecretKey = siteRevSecret.encrypt($scope.$session.login_host).toString('hex').substr(0,32);
+
+    // generate site replace key
+    var replaceBuffer = new Buffer($scope.$session.id.replaceIdPrvKey + $scope.$session.login_host);
+    var replaceHash = Bitcore.crypto.Hash.sha256(replaceBuffer);
+    var replaceBigNum = Bitcore.crypto.BN.fromBuffer(replaceHash);
+    var replacePrvKey = new Bitcore.PrivateKey(replaceBigNum);
+    var replacePubAddress =  replacePrvKey.toPublicKey().toAddress().toString();
+
+    // generate replace revoke key
+    var replaceRevBuffer = new Buffer($scope.$session.id.replaceIdRevokePubKey + $scope.$session.login_host);
+    var replaceRevHash = Bitcore.crypto.Hash.sha256(replaceRevBuffer);
+    var replaceRevBigNum = Bitcore.crypto.BN.fromBuffer(replaceRevHash);
+    var replaceRevPrvKey = new Bitcore.PrivateKey(replaceRevBigNum);
+    // generate replace revoke public key
+    var replaceRevPubKey =  replaceRevPrvKey.toPublicKey().toString();
+    // generate replace secret, store on server
+    var replaceRevSecret = ECIES().privateKey(replaceRevPrvKey).publicKey(Bitcore.PublicKey(replaceRevPubKey));
+    // hex encode encryption of login_host, use first 32 as secret key
+    var replaceRevSecretKey = replaceRevSecret.encrypt($scope.$session.login_host).toString('hex').substr(0,32);   
+
+    console.log('siteRevSecretKey', siteRevSecretKey);
+    var data = JSON.stringify({
+      revokePubKey: revokePubKey,
+      revokeSecretKey: siteRevSecretKey,
+      replaceIdPubAddress: replacePubAddress,
+      replaceIdRevPubKey: replaceRevPubKey,
+      replaceIdRevSecretKey: replaceRevSecretKey
+    });
+    console.log('revokeURL', revokeURL);
+    console.log('data', data);
+    $.ajax({
+        type: 'POST',
+        url: revokeURL,
+        contentType: "application/json",
+        dataType: "json",
+        data: data,
+        success: function (data, text, xhr) {
+            console.log('success revoking', data, text, xhr.status);
+        },
+        error: function (request, status, error) {
+            console.log('error revoking', request.responseText, status, error);
         }
     });
   }
@@ -417,7 +477,7 @@ angular.module('starter.controllers', [])
             var idObject = {
                 title: $scope.model.title,
                 passHash: CryptoJS.SHA256($scope.model.password).toString().substr(0,16),
-                revokeModeEnabled: false,
+                isRevoking: false,
                 keyObjEnc: keyenc + ''
             }
 
@@ -591,7 +651,7 @@ angular.module('starter.controllers', [])
         console.log('sessionId', sessionId);
         $scope.$session.id = sessionId;
         $scope.$session.id.title = id.title;
-        $scope.$session.id.revokeModeEnabled = id.revokeModeEnabled;
+        $scope.$session.id.isRevoking = id.isRevoking;
         $state.go( 'app.scan' );
     }
   };
@@ -616,6 +676,7 @@ angular.module('starter.controllers', [])
   $scope.phrase = [];
 
   $scope.revokeId = function() {
+    console.log('revokeId');
     $("#success-dialog").addClass('hide');
     $("#error-dialog").addClass('hide');
     if($scope.model.replaceId == $scope.$storage.selectedId) {
@@ -663,7 +724,7 @@ angular.module('starter.controllers', [])
     var keyObj = {
         idPrvKey: hdPrvKey.derive(0).privateKey.toWIF(),
         revokePubKey: hdPrvKey.derive(1).publicKey.toString(),
-        revokePrvKey: hdPrvKey.derive(1).privateKey.toWIF()
+        revokePrvKey: hdPrvKey.derive(1).privateKey.toString()
     };
 
     var revokeIdObj = JSON.parse(CryptoJS.AES.decrypt(revokeId.keyObjEnc, $scope.model.password, { format: JsonFormatter }).toString(CryptoJS.enc.Utf8));
@@ -691,7 +752,16 @@ angular.module('starter.controllers', [])
     revokeId.keyObjEnc = revokeIdObjStringEnc + '';
 
     // enable revoke mode on ID
-    revokeId.revokeModeEnabled = true;
+    revokeId.isRevoking = true;
+    $scope.$session.id = revokeIdObj;
+    $scope.$session.id.isRevoking = true;
+    $("#error-dialog").addClass('hide');
+    $("#success-text").html('ID in revoke mode.');
+    $("#success-dialog").removeClass('hide');
+    _.delay(function() {
+        $("#success-dialog").addClass('hide');
+        $state.go( 'app.scan', {}, {reload: true});
+    }, 3000);
 
   };
 
