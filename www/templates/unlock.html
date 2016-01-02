@@ -16,10 +16,14 @@
           	<label class="item item-input">
         		<input name="password" type="password" class="form-control" placeholder="*******" ng-model="model.password" autofocus required>
         	</label>
-        	<div class="help-block" ng-messages="unlockForm.password.$error" ng-if="unlockForm.password.$touched">
-			    <p ng-message="required">Password is required.</p>
-			    <p ng-message="badPass">Password is invalid.</p>
-			</div>
+        </div>
+        <div class="padding text-center">
+            <div id="success-dialog" class="hide text-center">
+                <i class="icon ion-checkmark-circled"></i> <span id="success-text">Success!</span>
+            </div>
+            <div id="error-dialog" class="hide text-center">
+                <i class="icon ion-alert-circled"></i> Error: <span id="error-text">Error!</span>
+            </div>
         </div>
         <div class="padding text-center">
         	<div class="row">
