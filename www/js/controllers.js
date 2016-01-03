@@ -27,8 +27,6 @@ angular.module('oneblock.controllers', [])
 
   $scope.model = {login_url:''};
 
-  $scope.revoking = $scope.$session.id.isRevoking ? '(REVOKE)' : '';
-
   $ionicPlatform.ready(function() {
     if($scope.$storage.ids.length == 0) {
         $state.go( 'app.new', {}, {reload: true} );
@@ -43,6 +41,8 @@ angular.module('oneblock.controllers', [])
      $state.go( 'app.site_confirm', {}, {reload: true} );
         return;
   }
+
+  $scope.model.revoking = ($scope.$session.id && $scope.$session.id.isRevoking) ? '(REVOKE)' : '';
 
   $scope.scan = function() {
       $("#login-buttons").addClass('hide');
@@ -180,6 +180,11 @@ angular.module('oneblock.controllers', [])
                   $ionicLoading.hide();
                   $("#error-text").html(request.responseText);
                   $("#error-dialog").removeClass('hide');
+                  $scope.$session.login_url = '';
+                  _.delay(function() {
+                      $("#error-dialog").addClass('hide');
+                      $state.go( 'app.scan', {}, {reload: true});
+                  }, 3000);
               }
           });
     });
@@ -222,6 +227,8 @@ angular.module('oneblock.controllers', [])
         },
         error: function (request, status, error) {
             //console.log('error setting revoke', request.responseText, status, error);
+            $("#error-text").html(request.responseText);
+            $("#error-dialog").removeClass('hide');
         }
     });
   }
@@ -279,6 +286,8 @@ angular.module('oneblock.controllers', [])
         },
         error: function (request, status, error) {
             //console.log('error revoking', request.responseText, status, error);
+            $("#error-text").html(request.responseText);
+            $("#error-dialog").removeClass('hide');
         }
     });
   }
@@ -776,14 +785,6 @@ angular.module('oneblock.controllers', [])
     disableBack: true
   });
   $scope.$session.exportString = JSON.stringify($scope.$storage.ids[$scope.$storage.selectedId]);
-  var clipboard = new Clipboard('.clipboard-btn');
-  clipboard.on('success', function(e) {
-      $("#success-dialog-clipboard").removeClass('hide');
-      $("#error-dialog-clipboard").addClass('hide');
-      _.delay(function() {
-          $("#success-dialog-clipboard").addClass('hide');
-      }, 2000);
-  });
   if(_.isEmpty($scope.$session.id)) {
     $state.go( 'app.unlock', {}, {reload: true});        
     return;    
@@ -794,8 +795,6 @@ angular.module('oneblock.controllers', [])
   _.defer(function() {
     new QRCode($('#qrcode_export')[0], $scope.$session.exportString);    
   });
-  $scope.print = function() {
-  }
 })
 
 function handleOpenURL(login_url) {

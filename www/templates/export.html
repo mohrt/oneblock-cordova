@@ -5,7 +5,7 @@
         <ion-view>
             <ion-content class="has-header" padding="true">
                 <div class="row">
-                    <div class="col col-center">
+                    <div class="col col-center qr-wrapper">
                         <div id="qrcode_export" class="center-qr"></div>
                     </div>
                 </div>
@@ -41,15 +41,13 @@
                     <div class="row">
                         <div class="col col-center text-center">
                             <label class="item item-input">
-                                <textarea id="id-export">{{$session.exportString}}</textarea>
+                                <textarea id="id-export" onClick="this.select()">{{$session.exportString}}</textarea>
                             </label>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col col-center text-center">
-                            <button class="clipboard-btn" data-clipboard-target="#id-export">
-                                Copy to clipboard
-                            </button>
+                                Copy the above text to your clipboard.
                         </div>
                     </div>
                     <div class="row">
