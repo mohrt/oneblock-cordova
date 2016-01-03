@@ -24,6 +24,10 @@ input[type="text"],input[type="password"] {
 	color: black;
 }
 
+.title-image {
+	margin-bottom: -5px;	
+}
+
 ion-footer-bar .footer-title {
 	font-size: 10px;
 	font-style: italic;
