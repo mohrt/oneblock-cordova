@@ -6,6 +6,13 @@
 // 'starter.controllers' is found in controllers.js
 angular.module('starter', ['ionic', 'starter.controllers', 'ngStorage', 'ngMessages'])
 
+.constant('$myConfig', {
+    appName: '1Block',
+    appVersion: '1.0',
+    appDate: 'Jan 2, 2016',
+    appUrl: 'https://1block.io/'
+})
+
 .run(function($ionicPlatform, $ionicHistory, $rootScope, $localStorage, $sessionStorage, $state, $window) {
   $ionicPlatform.ready(function() {
     $rootScope.$storage = $localStorage;

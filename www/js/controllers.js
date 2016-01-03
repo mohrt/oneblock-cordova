@@ -15,9 +15,11 @@ angular.module('starter.controllers', [])
 
 })
 
-.controller('ScanCtrl', function($window, $scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading) {
+.controller('ScanCtrl', function($window, $scope, $state, $ionicPlatform, $ionicHistory, $localStorage, $sessionStorage, $ionicLoading, $myConfig) {
   $scope.$storage = $localStorage;
   $scope.$session = $sessionStorage;
+  $scope.$config = $myConfig;
+  $scope.$year = new Date().getFullYear();
 
   $ionicHistory.nextViewOptions({
     disableBack: true,
@@ -27,6 +29,7 @@ angular.module('starter.controllers', [])
   // reset ids
   //$scope.$storage.ids = [];
 
+  console.log($scope.$config.appVersion);
   console.log($scope.$session.id);
   //console.log($scope.$storage.ids);
 

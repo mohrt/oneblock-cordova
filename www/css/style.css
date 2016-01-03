@@ -23,3 +23,9 @@ input[type="text"],input[type="password"] {
 #button-delete {
 	color: black;
 }
+
+ion-footer-bar .footer-title {
+	font-size: 10px;
+	font-style: italic;
+	text-align: center;
+}
