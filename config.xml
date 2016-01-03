@@ -2,10 +2,10 @@
 <widget id="com.ionicframework.oneblock251821" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
   <name>1Block</name>
   <description>
-        An Ionic Framework and Cordova project.
+        1Block, a passwordless authentication protocol.
     </description>
-  <author email="hi@ionicframework" href="http://ionicframework.com/">
-      Ionic Framework Team
+  <author email="monte@ohrt.com" href="http://1Block.io/">
+      Monte Ohrt
     </author>
   <content src="index.html"/>
   <access origin="*"/>
