@@ -155,19 +155,18 @@ transfer your ID between devices. The ID is always transferred in encrypted form
 # Revoking
 
 Hopefully the need to revoke a key is a very rare occurance. Your ID
-exists only on your device and is encrypted with an unlock code using a
-purposefully resource expensive algorithm (SCRYPT) to thwart brute-force
-attacks. However, it is possible to lose a device and have a weak enough
-unlock code for a hacker to eventually unlock. For this reason, a revoke/replace
-mechanism is built into the protocol. 1Block utilizes the Diffie-Hellman
-key exchange protocol to ensure only site-specific information exists server side.
+exists only on your device and is encrypted with an unlock code. However, it is
+possible to lose a device and have a weak enough unlock code for a hacker to
+eventually unlock. For this reason, a revoke/replace mechanism is built into the
+protocol. 1Block utilizes the Diffie-Hellman key exchange protocol to ensure only
+site-specific information exists server side.
 
 When a 1BlockID is first generated, a revoke key is also generated. The revoke
 private key exists nowhere on a device, only offline in paper form via the
 mnemonic phrase. The revoke public key is retained on the client device along with
 the 1Block ID. Upon initial sign-in to a service, a random site revoke key-pair is
 generated. The site revoke private key is mixed with the revoke public key to
-create a shared key-pair. A text phrase "Revoke 1Block" is then signed with the
+create a shared key-pair. Then some text (login host) is signed with the
 shared key-pair. The site revoke private key is then discarded. Each service stores
 the site revoke public key and the signature. 
 
@@ -177,8 +176,8 @@ placed into "revoke" mode. A separate 1Block ID is chosen to replace it.
 Upon the next login to a service, The service identifies the mode and
 sends the site revoke public key back to the client. The
 client then mixes the revoke private key with the site revoke public key
-to re-create the shared key-pair. This can then be used to sign the "Revoke 1Block"
-phrase and POST it back, along with the new ID information. The service
+to re-create the shared key-pair. This can then be used to sign the text
+(login host) and POST it back, along with the new ID information. The service
 verifies the signature with the shared public address. If it is successful,
 the 1Block ID is removed and replaced with the new one.
 
